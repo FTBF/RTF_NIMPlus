@@ -1,0 +1,29 @@
+#
+# HDL files
+#
+hdl:
+   - hdl/RTF_NIMPlus_top.sv
+#sim:
+#  - designs/ITA-BPM-DAQ/hdl/testBench.sv
+#  - shared/hdl/LTC2333_digitalModel.sv
+#
+# IP repositories for the design 
+#
+ip_repo:
+  - shared/ip_repo
+#
+# project specific XDC files below 
+#
+xdc:
+  - designs/RTF_NIMPlus/xdc/pinout.xdc
+  - designs/RTF_NIMPlus/xdc/timing.xdc
+#
+# Vivado target xdc file
+#
+xdcTarget: designs/ITA-BPM-DAQ/xdc/vivado_target.xdc
+
+#
+# Top level modle name 
+#
+topMod: RTF_NIMPlus
+#topSim: testBench

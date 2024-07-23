@@ -1,0 +1,6 @@
+RTF_NIMPlus:
+  primaryFilelist: designs/RTF_NIMPlus/filelist.yml
+  boardPart: digilentinc.com:eclypse-z7:part0:1.1
+  device: xc7a200tffg1156-2
+  processor: ps7_cortexa9_0
+
