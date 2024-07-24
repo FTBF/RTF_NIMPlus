@@ -38,20 +38,17 @@ set_property IOSTANDARD LVCMOS33 [get_ports USER_CLK2_SDA]
 # Ethernet interface
 #-------------------------------------
 
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_RXCLK]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_RXCLK]
 set_property PACKAGE_PIN Y30 [get_ports PHY_RXCLK]
 
-set_property PACKAGE_PIN AA30 [get_ports USER_CLOCK]
-set_property IOSTANDARD LVCMOS25 [get_ports USER_CLOCK]
-
 set_property PACKAGE_PIN V31 [get_ports PHY_RXCTL_RXDV]
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_RXCTL_RXDV]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_RXCTL_RXDV]
 
 #RGMII uses the CTL line
-#set_property PACKAGE_PIN V26 [get_ports PHY_RXER]
-#set_property IOSTANDARD LVCMOS25 [get_ports PHY_RXER]
+set_property PACKAGE_PIN V26 [get_ports PHY_RXER]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_RXER]
 
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_RXD*]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_RXD*]
 
 set_property PACKAGE_PIN  V24 [get_ports PHY_RXD[0]]
 set_property PACKAGE_PIN  W25 [get_ports PHY_RXD[1]]
@@ -64,19 +61,19 @@ set_property PACKAGE_PIN AB25 [get_ports PHY_RXD[7]]
 
 # Added by AGProsser to resolve bitstream generation fail
 set_property PACKAGE_PIN Y33 [get_ports PHY_RESET]
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_RESET]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_RESET]
 
 set_property PACKAGE_PIN Y31 [get_ports PHY_TXC_GTXCLK]
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_TXC_GTXCLK]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_TXC_GTXCLK]
 #set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets PHY_TXC_GTXCLK]
 
 set_property PACKAGE_PIN V32 [get_ports PHY_TXCTL_TXEN]
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_TXCTL_TXEN]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_TXCTL_TXEN]
 
 set_property PACKAGE_PIN V33 [get_ports PHY_TXER]
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_TXER]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_TXER]
 
-set_property IOSTANDARD LVCMOS25 [get_ports PHY_TXD0]
+set_property IOSTANDARD LVCMOS33 [get_ports PHY_TXD*]
 
 set_property PACKAGE_PIN  W28 [get_ports PHY_TXD[0]]
 set_property PACKAGE_PIN  W26 [get_ports PHY_TXD[1]]

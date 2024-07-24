@@ -2,7 +2,37 @@
 # HDL files
 #
 hdl:
-   - hdl/RTF_NIMPlus_top.sv
+   - designs/RTF_NIMPlus/hdl/RTF_NIMPlus_top.sv
+   - designs/RTF_NIMPlus/hdl/ethernet/reset_mgr.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/data_manager/tx_seq_ctl.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/data_manager/ram_comm_dec.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/data_manager/burst_controller_sm.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/data_manager/data_manager.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/data_manager/rx_ctl.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/params_package.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/burst_traffic_controller.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/fifo.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/dataout_mux.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/ethernet_controller_wrapper.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/decipherer.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/ethernet_controller.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/udp_data_splicer.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/create_packet.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/or33.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/ip_checksum_calc.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/user_addrs_mux.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/icmp_ping_checksum_calc.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/xmii_handler.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/icmp_ping_shift_reg.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/filter_data_out.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/address_container.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/crc_splice.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/arp_reply.vhd
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/crc_gen.v
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_controller/crc_chk.v
+   - designs/RTF_NIMPlus/hdl/ethernet/ethernet_interface.vhd
+   - shared/ip_repo/UtilityIP/IPIF_common/IPIF_parameterDecode.sv
+   - shared/ip_repo/UtilityIP/IPIF_common/IPIF_clock_converter.sv
 #sim:
 #  - designs/ITA-BPM-DAQ/hdl/testBench.sv
 #  - shared/hdl/LTC2333_digitalModel.sv

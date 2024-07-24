@@ -2,7 +2,7 @@
 # CLOCK
 #-------------------------------------
 
-create_clock -period 5.000 -name USER_CLK1 [get_ports USER_CLK1]
+create_clock -period 6.250 -name USER_CLK1 [get_ports USER_CLK1]
 create_clock -period 10.000 -name USER_CLK2 [get_ports USER_CLK2]
 
 create_clock -period 5.000 -name NW_LA_16_P -waveform {0.000 2.500} [get_ports NW_LA_16_P]
