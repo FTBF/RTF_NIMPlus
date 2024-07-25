@@ -22,6 +22,9 @@ use ieee.numeric_std.ALL;
 	  		
 use work.params_package.all;
 
+Library xpm;
+use xpm.vcomponents.all;
+
 entity ethernet_interface is
    port ( 								
    		  reset_in             	: in    std_logic; 		-- optional for user to reset, this block will self reset on startup					
@@ -88,7 +91,8 @@ architecture BEHAVIORAL of ethernet_interface is
 	signal user_tx_data_in    		: std_logic_vector (7 downto 0);
 	signal user_tx_enable_out 		: std_logic;
 	signal user_tx_size_in    		: std_logic_vector (10 downto 0);
-	signal reset         	     	: std_logic;		
+	signal reset         	     	: std_logic;
+    signal reset_internal  	     	: std_logic;		
 	                             				  		   
 	signal user_rx_src_capture_for_ctrl 		: std_logic; 	-- take sender address, latch src when capture is '1' for dest														 
 	signal user_rx_src_capture_for_data 		: std_logic; 	-- take sender address, latch src when capture is '1' for dest														 
@@ -269,8 +273,41 @@ begin
 		port map (
 			slow_clk => USER_CLK,
 			reset_start => reset_mgr_in,
-			reset => reset);
-						  		 
+			reset => reset_internal);
+
+   xpm_cdc_sync_rst_inst : xpm_cdc_sync_rst
+     generic map (
+       DEST_SYNC_FF => 2,   -- DECIMAL; range: 2-10
+       INIT => 1,           -- DECIMAL; 0=initialize synchronization registers to 0, 1=initialize
+       -- synchronization registers to 1
+       INIT_SYNC_FF => 1,   -- DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+       SIM_ASSERT_CHK => 0  -- DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+       )
+     port map (
+       dest_rst => reset, -- 1-bit output: src_rst synchronized to the destination clock domain. This output
+       -- is registered.
+
+       dest_clk => MASTER_CLK, -- 1-bit input: Destination clock.
+       src_rst => reset_internal    -- 1-bit input: Source reset signal.
+       );
+
+   xpm_cdc_sync_rst_inst2 : xpm_cdc_sync_rst
+     generic map (
+       DEST_SYNC_FF => 2,   -- DECIMAL; range: 2-10
+       INIT => 1,           -- DECIMAL; 0=initialize synchronization registers to 0, 1=initialize
+       -- synchronization registers to 1
+       INIT_SYNC_FF => 1,   -- DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+       SIM_ASSERT_CHK => 0  -- DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+       )
+     port map (
+       dest_rst => 	reset_mgr_in, -- 1-bit output: src_rst synchronized to the destination clock domain. This output
+       -- is registered.
+
+       dest_clk => USER_CLK, -- 1-bit input: Destination clock.
+       src_rst => internal_reset(0) or reset_in    -- 1-bit input: Source reset signal.
+       );
+
+   
 	reset_out <= reset and (not internal_reset(1)); -- "soft" reset, for not forwarding out of block 
    	-------- end reset section -----------	  
 	   
@@ -298,8 +335,6 @@ begin
 	ots_dout <= tx_data when (ots_user_mask = '1') else internal_eth_dout;
 	ots_ready <= (not ots_user_mask) or user_ready; -- ots address space is always ready	  
 	
-	reset_mgr_in <= internal_reset(0) or reset_in;
-																								  
 	
 	process(MASTER_CLK)
 	begin

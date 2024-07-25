@@ -120,8 +120,8 @@ module RTF_NIMPlus
 		.IPIF_ip2bus_rdack(),
 		.IPIF_ip2bus_wrack(),
 
-		.parameters_out(params_to_bus),
-		.parameters_in(params_from_bus)
+		.parameters_out(params_from_bus),
+		.parameters_in(params_to_bus)
 	);
 
    IPIF_clock_converter #(

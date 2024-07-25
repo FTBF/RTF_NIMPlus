@@ -33,9 +33,8 @@ hdl:
    - designs/RTF_NIMPlus/hdl/ethernet/ethernet_interface.vhd
    - shared/ip_repo/UtilityIP/IPIF_common/IPIF_parameterDecode.sv
    - shared/ip_repo/UtilityIP/IPIF_common/IPIF_clock_converter.sv
-#sim:
-#  - designs/ITA-BPM-DAQ/hdl/testBench.sv
-#  - shared/hdl/LTC2333_digitalModel.sv
+sim:
+   - designs/RTF_NIMPlus/hdl/RTF_NIMPlus_sim.sv
 #
 # IP repositories for the design 
 #
@@ -56,4 +55,4 @@ xdcTarget: designs/ITA-BPM-DAQ/xdc/vivado_target.xdc
 # Top level modle name 
 #
 topMod: RTF_NIMPlus
-#topSim: testBench
+topSim: RTF_NIMPlus_sim
