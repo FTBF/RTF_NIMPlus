@@ -46,7 +46,7 @@ module RTF_NIMPlus_sim
    
    task ethSend;
       input [7:0]  word;
-      input [7:0]  word_out;
+      inout [8:0]  word_out;
       inout [31:0] CRC;
       begin
          logic [31:0] CRC_tmp;
@@ -56,7 +56,7 @@ module RTF_NIMPlus_sim
 	     
 	     word_out[8] = 1;
 	     word_out[7:0] = word;
-	     #8;
+         @(posedge PHY_RXCLK);
       end
    endtask
 
@@ -64,7 +64,7 @@ module RTF_NIMPlus_sim
    task ethSendCom;
       input [35:0] addr;
 	  input [31:0] word;
-  	  output [8:0] tmpEthData;
+//  	  inout [8:0] tmpEthData;
       begin
          
          logic [31:0] CRC_tmp;
@@ -96,7 +96,7 @@ module RTF_NIMPlus_sim
          ethSend('hec, tmpEthData, CRC);
          ethSend('h00, tmpEthData, CRC);
          ethSend('h6b, tmpEthData, CRC);
-	     
+         
 	     //host MAC
          ethSend('hd0, tmpEthData, CRC);
          ethSend('h8e, tmpEthData, CRC);
@@ -202,11 +202,148 @@ module RTF_NIMPlus_sim
          ethSend(notCRC[15 : 8], tmpEthData, CRC_dumb);
          ethSend(notCRC[23 : 16], tmpEthData, CRC_dumb);
          ethSend(notCRC[31 :  24], tmpEthData, CRC_dumb);
+         @(posedge PHY_RXCLK);
          tmpEthData <= {1'b0,  'haa};
          
       end
-   endtask
+   endtask // ethSendCom
 
+   task ethRecvCom;
+  	  input [7:0] flags;
+	  input [7:0] numword;
+	  input [35:0] addr;
+      begin
+         
+         logic [31:0] CRC_tmp;
+	     logic [31:0] CRC;
+	     logic [31:0] notCRC;
+	     logic [31:0] CRC_dumb;
+		 integer      i;
+		 
+	     CRC = 'hffffffff;
+	     
+	     //preamble
+         ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     ethSend('h55, tmpEthData, CRC_dumb);
+	     
+	     //end of preamble
+	     ethSend('hD5, tmpEthData, CRC_dumb);
+	     
+	     //start of ethernet packet
+	     //destination MAC
+         ethSend('h00, tmpEthData, CRC);
+         ethSend('h80, tmpEthData, CRC);
+         ethSend('h55, tmpEthData, CRC);
+         ethSend('hec, tmpEthData, CRC);
+         ethSend('h00, tmpEthData, CRC);
+         ethSend('h6b, tmpEthData, CRC);
+	     
+	     //host MAC
+         ethSend('hd0, tmpEthData, CRC);
+         ethSend('h8e, tmpEthData, CRC);
+         ethSend('h79, tmpEthData, CRC);
+         ethSend('hd7, tmpEthData, CRC);
+         ethSend('hb5, tmpEthData, CRC);
+         ethSend('he0, tmpEthData, CRC);
+	     
+	     //Ethertype (IPv4)
+         ethSend('h08, tmpEthData, CRC);
+         ethSend('h00, tmpEthData, CRC);
+	     
+	     //start of IP packet
+	     //IP version (4) and header length (5) 
+         ethSend('h45, tmpEthData, CRC);
+	     
+	     //DSCP/ECN
+         ethSend('h00, tmpEthData, CRC);
+         
+	     //total length of IP packet (including header)
+	     ethSend('h00, tmpEthData, CRC);
+         ethSend('h2e, tmpEthData, CRC);
+         
+	     //Identification 
+	     ethSend('h6e, tmpEthData, CRC);
+         ethSend('h5e, tmpEthData, CRC);
+         
+	     //fragmentation/offset
+	     ethSend('h00, tmpEthData, CRC);
+	     ethSend('h00, tmpEthData, CRC);
+		 
+	     //TTL
+         ethSend('h80, tmpEthData, CRC);
+	     
+	     //protocol (UDP)
+         ethSend('h11, tmpEthData, CRC);
+	     
+	     //IP header checksum 
+         ethSend('h00, tmpEthData, CRC);
+         ethSend('h00, tmpEthData, CRC);
+	     
+	     //source IP
+         ethSend('hc0, tmpEthData, CRC);
+         ethSend('ha8, tmpEthData, CRC);
+         ethSend('h2e, tmpEthData, CRC);
+         ethSend('h01, tmpEthData, CRC);
+         
+	     //destination IP
+	     ethSend('hc0, tmpEthData, CRC);
+         ethSend('ha8, tmpEthData, CRC);
+         ethSend('h2e, tmpEthData, CRC);
+         ethSend('h6b, tmpEthData, CRC);
+         
+	     //UDP datagram starts 
+	     //source port
+	     ethSend('hdf, tmpEthData, CRC);
+         ethSend('h78, tmpEthData, CRC);
+	     
+	     //destination port 
+         ethSend('h07, tmpEthData, CRC);
+         ethSend('hd7, tmpEthData, CRC);
+	     
+	     //length
+         ethSend('h00, tmpEthData, CRC);
+         ethSend('h1a, tmpEthData, CRC);
+	     
+	     //UDP checksum 
+         ethSend('h8b, tmpEthData, CRC);
+         ethSend('he9, tmpEthData, CRC);
+	     
+	     //otsdaq packet
+	     //r/w + flags (write)
+	     ethSend(flags, tmpEthData, CRC);
+	     //data length (number of 64 bit words)
+         ethSend(numword, tmpEthData, CRC);
+	     
+	     //register address
+	     ethSend(addr[7 : 0],   tmpEthData, CRC);
+         ethSend(addr[15 : 8],  tmpEthData, CRC);
+         ethSend(addr[23 : 16], tmpEthData, CRC);
+         ethSend(addr[31 : 24], tmpEthData, CRC);
+         ethSend({4'h0&addr[35 : 32]}, tmpEthData, CRC);
+         ethSend('h00, tmpEthData, CRC);
+	     ethSend('h00, tmpEthData, CRC);
+	     ethSend('h00, tmpEthData, CRC);
+         
+	     for(i = 0; i < 32; i += 1) begin
+  	        notCRC[i] = ~CRC[31-i];
+         end
+
+	     //ethernet header 
+         ethSend(notCRC[7 : 0], tmpEthData, CRC_dumb);
+	     ethSend(notCRC[15 : 8], tmpEthData, CRC_dumb);
+	     ethSend(notCRC[23 : 16], tmpEthData, CRC_dumb);
+	     ethSend(notCRC[31 : 24], tmpEthData, CRC_dumb);
+         @(posedge PHY_RXCLK);         
+	     tmpEthData <= {1'b0, 8'haa};
+	  end
+   endtask // ethRecvCom
+
+   
 
    logic         USER_CLK1; // Input pin of this clock is on a Global Clock Route:  CAPTAN+ local oscillator FPGA PIN AA30
    logic         USER_CLK2; // CAPTAN+ local oscillator FPGA PIN AC33
@@ -320,6 +457,15 @@ module RTF_NIMPlus_sim
 
       // Ethernet interface 
       PHY_RXER <= 0;
+
+
+      #2000;
+
+      ethSendCom('d1, 32'h12345678);
+      #1000;
+      ethRecvCom(8'h00, 'h01, 'h00000000);
+      #1000;
+      ethRecvCom(8'h00, 'h01, 'h00000001);
    end
 
 endmodule

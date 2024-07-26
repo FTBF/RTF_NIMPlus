@@ -71,6 +71,8 @@ module RTF_NIMPlus
    logic [63:0]      tx_data;
    logic             tx_rden;
    logic             reset;
+   logic             IPIF_ip2bus_wrack;
+   logic             IPIF_ip2bus_rdack;
   
    // module parameter handling
    typedef struct    packed {
@@ -97,11 +99,14 @@ module RTF_NIMPlus
    localparam param_t self_reset = '{default:'0,
 	                                 test0:64'b1
                                      };
-   
+
+
+   localparam N_REG = 64;
+   localparam C_S_AXI_DATA_WIDTH = 64;
    IPIF_parameterDecode #(
-		.C_S_AXI_DATA_WIDTH(64),
+		.C_S_AXI_DATA_WIDTH(C_S_AXI_DATA_WIDTH),
         .C_S_AXI_ADDR_WIDTH(32),
-		.N_REG(64),
+		.N_REG(N_REG),
 		.USE_ONEHOT_READ(0),
         .USE_ONEHOT_WRITE(0),
 		.PARAM_T(param_t),
@@ -112,13 +117,13 @@ module RTF_NIMPlus
 
 		.IPIF_bus2ip_addr(rx_addr<<2), // <<2 because this is expecting AXI 8-bit byte addresses 
 		.IPIF_bus2ip_data(rx_data),
-		.IPIF_bus2ip_rdce(0),
+		.IPIF_bus2ip_rdce( { {N_REG{1'b0}}, tx_rden } ),
 		.IPIF_bus2ip_resetn(!reset),
 		.IPIF_bus2ip_wrce(0),
         .IPIF_bus2ip_wstrb(rx_wren),
 		.IPIF_ip2bus_data(tx_data),
-		.IPIF_ip2bus_rdack(),
-		.IPIF_ip2bus_wrack(),
+		.IPIF_ip2bus_rdack(IPIF_ip2bus_rdack),
+		.IPIF_ip2bus_wrack(IPIF_ip2bus_wrack),
 
 		.parameters_out(params_from_bus),
 		.parameters_in(params_to_bus)
@@ -126,8 +131,8 @@ module RTF_NIMPlus
 
    IPIF_clock_converter #(
 		.INCLUDE_SYNCHRONIZER(1),
-		.C_S_AXI_DATA_WIDTH(64),
-		.N_REG(64),
+		.C_S_AXI_DATA_WIDTH(C_S_AXI_DATA_WIDTH),
+		.N_REG(N_REG),
 		.PARAM_T(param_t)
 	) parameter_cdc (
 		.IP_clk(USER_CLK1),
@@ -162,7 +167,7 @@ module RTF_NIMPlus
     .PHY_TX_EN(PHY_TXCTL_TXEN),
     .PHY_TX_ER(PHY_TXER),
       
-    .user_ready(1),
+    .user_ready(IPIF_ip2bus_rdack || IPIF_ip2bus_wrack),
 
     .rx_addr(rx_addr),
     .rx_data(rx_data),
