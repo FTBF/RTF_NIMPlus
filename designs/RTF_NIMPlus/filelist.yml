@@ -3,6 +3,9 @@
 #
 hdl:
    - designs/RTF_NIMPlus/hdl/RTF_NIMPlus_top.sv
+   - designs/RTF_NIMPlus/hdl/NIMPlus.sv
+   - designs/RTF_NIMPlus/hdl/DAC_Control.vhd
+   - designs/RTF_NIMPlus/hdl/NIM_input.sv
    - designs/RTF_NIMPlus/hdl/ethernet/reset_mgr.vhd
    - designs/RTF_NIMPlus/hdl/ethernet/data_manager/tx_seq_ctl.vhd
    - designs/RTF_NIMPlus/hdl/ethernet/data_manager/ram_comm_dec.vhd

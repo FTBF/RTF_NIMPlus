@@ -28,7 +28,7 @@ use xpm.vcomponents.all;
 entity ethernet_interface is
    port ( 								
    		  reset_in             	: in    std_logic; 		-- optional for user to reset, this block will self reset on startup					
-          reset_out            	: out   std_logic;  		-- ethernet reset can be used for "reset on start-up" or for reset to PHY  
+          reset_out            	: out   std_logic;  	-- ethernet reset can be used for "reset on start-up" or for reset to PHY  
 		  		
 		  -- rx/tx signals
           rx_addr              	: out   std_logic_vector (31 downto 0); 
@@ -59,7 +59,9 @@ entity ethernet_interface is
 		  
 		  -- PHY interface signals
 		  MASTER_CLK           	: in    std_logic; 
-		  USER_CLK           	: in    std_logic; 			
+		  USER_CLK           	: in    std_logic;
+
+          PHY_RESET             : out   std_logic;
 		  
           PHY_RXD             	: in    std_logic_vector (7 downto 0); 
           PHY_RX_DV           	: in    std_logic; 
@@ -275,6 +277,7 @@ begin
 			reset_start => reset_mgr_in,
 			reset => reset_internal);
 
+   PHY_RESET <= not reset_internal;
    xpm_cdc_sync_rst_inst : xpm_cdc_sync_rst
      generic map (
        DEST_SYNC_FF => 2,   -- DECIMAL; range: 2-10
