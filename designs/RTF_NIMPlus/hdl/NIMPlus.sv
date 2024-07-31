@@ -51,13 +51,13 @@ module NIMPlus
    
 
    //input signal processing
+   genvar              i;
    generate
-      genvar i;
       for(i = 0; i < 8; i += 1)
       begin
          NIM_input input_proc_NIM
          (
-          .clk(clk),
+          .clk(clk_fast),
           .reset(reset),
 
           .delay(params_in.inputs[i].delay),
@@ -73,7 +73,7 @@ module NIMPlus
       begin
          NIM_input input_proc_LVDS
          (
-          .clk(clk),
+          .clk(clk_fast),
           .reset(reset),
 
           .delay(params_in.inputs[i+8].delay),
@@ -87,14 +87,22 @@ module NIMPlus
    endgenerate
 
    //output logic
-   //temporary output logic
-   always_comb
-   begin
-      NIM_OUT[0] = inputs[0];
-      NIM_OUT[1] = inputs[1];
-      NIM_OUT[2] = inputs[2];
-      NIM_OUT[3] = inputs[3];
-   end
+   generate
+      for(i = 0; i < 4; i += 1)
+      begin
+         NIM_output nim_out
+         (
+          .clk(clk_fast),
+          .reset(reset),
+
+          .LUT_table(   params_in.outputs[i].lut_data),
+          .LUT_table_we(params_in.outputs[i].lut_we),
+
+          .inputs(inputs),
+          .dout(NIM_OUT[i])
+          );
+      end
+   endgenerate
    
 endmodule
 

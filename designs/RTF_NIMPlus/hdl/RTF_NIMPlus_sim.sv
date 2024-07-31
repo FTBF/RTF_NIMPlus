@@ -63,7 +63,7 @@ module RTF_NIMPlus_sim
  
    task ethSendCom;
       input [35:0] addr;
-	  input [31:0] word;
+	  input [64:0] word;
 //  	  inout [8:0] tmpEthData;
       begin
          
@@ -95,7 +95,7 @@ module RTF_NIMPlus_sim
          ethSend('h55, tmpEthData, CRC);
          ethSend('hec, tmpEthData, CRC);
          ethSend('h00, tmpEthData, CRC);
-         ethSend('h6b, tmpEthData, CRC);
+         ethSend('h78, tmpEthData, CRC);
          
 	     //host MAC
          ethSend('hd0, tmpEthData, CRC);
@@ -148,7 +148,7 @@ module RTF_NIMPlus_sim
 	     ethSend('hc0, tmpEthData, CRC);
          ethSend('ha8, tmpEthData, CRC);
          ethSend('h2e, tmpEthData, CRC);
-         ethSend('h6b, tmpEthData, CRC);
+         ethSend('h78, tmpEthData, CRC);
          
 	     //UDP datagram starts 
 	     //source port
@@ -184,14 +184,14 @@ module RTF_NIMPlus_sim
 	     ethSend('h00, tmpEthData, CRC);
          
 	     //data word(s)
-	     ethSend(word[7 : 0],   tmpEthData, CRC);
-	     ethSend(word[15 : 8],  tmpEthData, CRC);
-         ethSend(word[23 : 16], tmpEthData, CRC);
-         ethSend(word[31 : 24], tmpEthData, CRC);
-         ethSend('h00, tmpEthData, CRC);
-         ethSend('h00, tmpEthData, CRC);
-         ethSend('h00, tmpEthData, CRC);
-         ethSend('h00, tmpEthData, CRC);
+	     ethSend(word[ 0 +: 8], tmpEthData, CRC);
+	     ethSend(word[ 8 +: 8], tmpEthData, CRC);
+         ethSend(word[16 +: 8], tmpEthData, CRC);
+         ethSend(word[24 +: 8], tmpEthData, CRC);
+         ethSend(word[32 +: 8], tmpEthData, CRC);
+         ethSend(word[40 +: 8], tmpEthData, CRC);
+         ethSend(word[48 +: 8], tmpEthData, CRC);
+         ethSend(word[56 +: 8], tmpEthData, CRC);
 
 	     for(i = 0; i < 32; i += 1) begin
   	        notCRC[i] = ~CRC[31-i];
@@ -241,7 +241,7 @@ module RTF_NIMPlus_sim
          ethSend('h55, tmpEthData, CRC);
          ethSend('hec, tmpEthData, CRC);
          ethSend('h00, tmpEthData, CRC);
-         ethSend('h6b, tmpEthData, CRC);
+         ethSend('h78, tmpEthData, CRC);
 	     
 	     //host MAC
          ethSend('hd0, tmpEthData, CRC);
@@ -294,7 +294,7 @@ module RTF_NIMPlus_sim
 	     ethSend('hc0, tmpEthData, CRC);
          ethSend('ha8, tmpEthData, CRC);
          ethSend('h2e, tmpEthData, CRC);
-         ethSend('h6b, tmpEthData, CRC);
+         ethSend('h78, tmpEthData, CRC);
          
 	     //UDP datagram starts 
 	     //source port
@@ -348,6 +348,36 @@ module RTF_NIMPlus_sim
    logic         USER_CLK1; // Input pin of this clock is on a Global Clock Route:  CAPTAN+ local oscillator FPGA PIN AA30
    logic         USER_CLK2; // CAPTAN+ local oscillator FPGA PIN AC33
 
+   logic [7:0]   NIM_COM_P; // 8 NIM inputs
+   logic [7:0]   NIM_COM_N;
+   logic [7:0]   NIM_COM_UNLATCH; // 8 NIM input latch contorl 
+   
+   logic [3:0]   LVDS_IN_P; // 4 LVDS in
+   logic [3:0]   LVDS_IN_N;
+   
+   logic [3:0]   NIM_OUT_P; // 4 NIM outputs
+   logic [3:0]   NIM_OUT_N;
+   
+   logic         DAC_SER_CLK; // DAC Programming interface clock
+   logic         DAC_NSYNC; // DAC Programming interface sync
+   logic         DAC_DIN; // DAC Programming interface data
+
+   //RTF front panel outputs 
+   logic [11:0]  RJ45_out_1_P;
+   logic [11:0]  RJ45_out_1_N;
+   logic [11:0]  RJ45_out_2_P;
+   logic [11:0]  RJ45_out_2_N;
+   
+   //RTF backpanel connections
+   logic [7:0]   RJ45_in_1_P;
+   logic [7:0]   RJ45_in_1_N;
+   logic [7:0]   RJ45_in_2_P;
+   logic [7:0]   RJ45_in_2_N;
+   
+   logic [1:0]   SMA_in_P;
+   logic [1:0]   SMA_in_N;
+   logic [1:0]   SMA_out_P;
+   logic [1:0]   SMA_out_N;
 
 
    // I2C Interface to the clock generator 
@@ -378,6 +408,10 @@ module RTF_NIMPlus_sim
 
    assign PHY_RXD =  tmpEthData[7 : 0];
    assign PHY_RXCTL_RXDV = tmpEthData[8]; 
+
+   assign NIM_COM_N = ~NIM_COM_P;
+   assign LVDS_IN_N = ~LVDS_IN_P;
+   assign SMA_in_N = ~SMA_in_P;
    
    RTF_NIMPlus DUT
    (
@@ -385,20 +419,20 @@ module RTF_NIMPlus_sim
     .USER_CLK1(USER_CLK1), // Input pin of this clock is on a Global Clock Route:  CAPTAN+ local oscillator FPGA PIN AA30
     .USER_CLK2(USER_CLK2), // CAPTAN+ local oscillator FPGA PIN AC33
 
-    // //NIM+ i/o 
-    // input logic [7:0]   NIM_COM_P, // 8 NIM inputs
-    // input logic [7:0]   NIM_COM_N,
-    // input logic [7:0]   NIM_COM_UNLATCH, // 8 NIM input latch contorl 
-    //    
-    // input logic [3:0]   LVDS_IN_P, // 4 LVDS in
-    // input logic [3:0]   LVDS_IN_N,
-    //
-    // output logic [3:0]  NIM_OUT_P, // 4 NIM outputs
-    // output logic [3:0]  NIM_OUT_N,
-    //
-    // output logic        DAC_SER_CLK, // DAC Programming interface clock
-    // output logic        DAC_NSYNC, // DAC Programming interface sync
-    // output logic        DAC_DIN, // DAC Programming interface data
+    //NIM+ i/o 
+    .NIM_COM_P(NIM_COM_P), // 8 NIM inputs
+    .NIM_COM_N(NIM_COM_N),
+    .NIM_COM_UNLATCH(NIM_COM_UNLATCH), // 8 NIM input latch contorl 
+
+    .LVDS_IN_P(LVDS_IN_P), // 4 LVDS in
+    .LVDS_IN_N(LVDS_IN_N),
+
+    .NIM_OUT_P(NIM_OUT_P), // 4 NIM outputs
+    .NIM_OUT_N(NIM_OUT_N),
+
+    .DAC_SER_CLK(DAC_SER_CLK), // DAC Programming interface clock
+    .DAC_NSYNC(DAC_NSYNC), // DAC Programming interface sync
+    .DAC_DIN(DAC_DIN), // DAC Programming interface data
 
 
     // I2C Interface to the clock generator 
@@ -409,22 +443,22 @@ module RTF_NIMPlus_sim
    
     .LED0(LED0),
    
-    // //RTF front panel outputs 
-    // output logic [11:0] RJ45_out_1_P,
-    // output logic [11:0] RJ45_out_1_N,
-    // output logic [11:0] RJ45_out_2_P,
-    // output logic [11:0] RJ45_out_2_N,
-    //
-    // //RTF backpanel connections
-    // input logic [7:0]   RJ45_in_1_P,
-    // input logic [7:0]   RJ45_in_1_N,
-    // input logic [7:0]   RJ45_in_2_P,
-    // input logic [7:0]   RJ45_in_2_N,
-    //
-    // input logic [1:0]   SMA_in_P,
-    // input logic [1:0]   SMA_in_N,
-    // output logic [1:0]  SMA_out_P,
-    // output logic [1:0]  SMA_out_N,
+    //RTF front panel outputs 
+    .RJ45_out_1_P(RJ45_out_1_P),
+    .RJ45_out_1_N(RJ45_out_1_N),
+    .RJ45_out_2_P(RJ45_out_2_P),
+    .RJ45_out_2_N(RJ45_out_2_N),
+    
+    //RTF backpanel connections
+    .RJ45_in_1_P(RJ45_in_1_P),
+    .RJ45_in_1_N(RJ45_in_1_N),
+    .RJ45_in_2_P(RJ45_in_2_P),
+    .RJ45_in_2_N(RJ45_in_2_N),
+
+    .SMA_in_P(SMA_in_P),
+    .SMA_in_N(SMA_in_N),
+    .SMA_out_P(SMA_out_P),
+    .SMA_out_N(SMA_out_N),
    
    
     // Ethernet interface 
@@ -454,6 +488,9 @@ module RTF_NIMPlus_sim
       USER_CLK1 <= 0;
       USER_CLK2 <= 0;
       tmpEthData <= 9'h0dd;
+      NIM_COM_P <= 0;
+      LVDS_IN_P <= 0;
+      SMA_in_P <= 0;
 
       // Ethernet interface 
       PHY_RXER <= 0;
@@ -461,11 +498,11 @@ module RTF_NIMPlus_sim
 
       #2000;
 
-      ethSendCom('d1, 32'h12345678);
+      ethSendCom('d3, 64'ha12345678);
       #1000;
-      ethRecvCom(8'h00, 'h01, 'h00000000);
-      #1000;
-      ethRecvCom(8'h00, 'h01, 'h00000001);
+      //ethRecvCom(8'h00, 'h01, 'h00000000);
+      //#1000;
+      //ethRecvCom(8'h00, 'h01, 'h00000001);
    end
 
 endmodule

@@ -27,7 +27,7 @@ module NIM_input
    begin
       if(reset) input_sr <= '0;
       else if(invert ^ trig_in) input_sr <= stretch;
-      else input_sr <= {input_sr[63:1], 1'b0};
+      else input_sr <= {1'b0, input_sr[63:1]};
    end
 
    always_comb
@@ -36,10 +36,10 @@ module NIM_input
       else             delay_input <= input_sr[0];
    end
 
-   SRLC32E delay_1( .D(input_sr[0]),     .Q(delay_out_1), .Q31(delay_1_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
-   SRLC32E delay_2( .D(delay_1_cascade), .Q(delay_out_2), .Q31(delay_2_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
-   SRLC32E delay_3( .D(delay_2_cascade), .Q(delay_out_3), .Q31(delay_3_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
-   SRLC32E delay_4( .D(delay_3_cascade), .Q(delay_out_4), .Q31(),                .A(delay[4:0]), .CE(1'b1), .CLK(clk));
+   SRLC32E delay_1(.D(delay_input),     .Q(delay_out_1), .Q31(delay_1_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
+   SRLC32E delay_2(.D(delay_1_cascade), .Q(delay_out_2), .Q31(delay_2_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
+   SRLC32E delay_3(.D(delay_2_cascade), .Q(delay_out_3), .Q31(delay_3_cascade), .A(delay[4:0]), .CE(1'b1), .CLK(clk));
+   SRLC32E delay_4(.D(delay_3_cascade), .Q(delay_out_4), .Q31(),                .A(delay[4:0]), .CE(1'b1), .CLK(clk));
 
    always_comb
    begin

@@ -113,8 +113,17 @@ module RTF_NIMPlus
       logic             invert;
     } input_param_t;
 
+   typedef struct       packed {
+      // Register 0
+      logic [21:0]      padding0;
+      logic [9:0]       lut_we;
+      logic [31:0]      lut_data;
+   } output_param_t;
+
    typedef struct    packed {
-      logic [12*64-1:0] padding;
+      logic [8*64-1:0] padding;
+      //output regs 52-55
+      output_param_t [3:0] outputs;
       //input registers 4-51
       input_param_t [11:0] inputs;
       // Register 3
@@ -141,7 +150,9 @@ module RTF_NIMPlus
                                           ext_clk_select:0
                                           };
 
+   localparam output_param_t output_self_reset = '{default:'0, lut_we:'1};
    localparam param_t self_reset = '{default:'0,
+                                     outputs:{4{output_self_reset}},
 	                                 reset:'b1
                                      };
 
@@ -201,6 +212,10 @@ module RTF_NIMPlus
          params_from_IP.inputs[iparam].padding0 = '0;
          params_from_IP.inputs[iparam].padding2 = '0;
          params_from_IP.inputs[iparam].padding3 = '0;
+      end
+      for(iparam = 0; iparam < 4; iparam += 1)
+      begin
+         params_from_IP.outputs[iparam].padding0 = '0;
       end
       
    end
@@ -263,6 +278,7 @@ module RTF_NIMPlus
      .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
      .CLKFBOUT_MULT_F(18.0),     // Multiply value for all CLKOUT (2.000-64.000).
      .CLKOUT0_DIVIDE_F(6.0),    // Divide amount for CLKOUT0 (1.000-128.000).
+     .CLKIN1_PERIOD(18.868),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
      .CLKOUT0_DUTY_CYCLE(0.5),
      .CLKOUT0_PHASE(0.0),
      .CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
@@ -286,7 +302,7 @@ module RTF_NIMPlus
      .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
      .CLKFBOUT_MULT_F(4.0),     // Multiply value for all CLKOUT (2.000-64.000).
      .CLKFBOUT_PHASE(0.0),      // Phase offset in degrees of CLKFB (-360.000-360.000).
-     .CLKIN1_PERIOD(0.0),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+     .CLKIN1_PERIOD(6.25),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
      // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
      .CLKOUT1_DIVIDE(4),
      .CLKOUT2_DIVIDE(8),
@@ -329,8 +345,8 @@ module RTF_NIMPlus
 	 .PARAM_T(param_t)
      ) nim_plus_logic
    (
-    .clk_fast(clk160),
-    .clk_slow(clk40),
+    .clk_fast(clk_160),
+    .clk_slow(clk_40),
     .clk_dac(clk_5),
 
     .reset(reset),
