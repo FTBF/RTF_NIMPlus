@@ -104,13 +104,15 @@ module RTF_NIMPlus
       // Register 3
       logic [63:0]      padding3;
       // Register 2
-      logic [56:0]      padding2;
-      logic [6:0]       delay;
+      logic [55:0]      padding2;
+      logic [7:0]       delay;
       // Register 1
       logic [63:0]      stretch;
       // Register 0
-      logic [62:0]      padding0;
+      logic [46:0]      padding0;
       logic             invert;
+      logic [7:0]       mask;
+      logic [7:0]       trig_pattern;
     } input_param_t;
 
    typedef struct       packed {
@@ -147,6 +149,7 @@ module RTF_NIMPlus
    param_t params_to_bus;
    
    localparam param_t defaults = param_t'{default:'0,
+                                          inputs:{12{'{default:'0, mask:8'h3, trig_pattern:8'h1}}},
                                           ext_clk_select:0
                                           };
 

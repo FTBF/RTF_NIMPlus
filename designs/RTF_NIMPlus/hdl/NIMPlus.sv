@@ -63,6 +63,8 @@ module NIMPlus
           .delay(params_in.inputs[i].delay),
           .stretch(params_in.inputs[i].stretch),
           .invert(params_in.inputs[i].invert),
+          .trig_pattern(params_in.inputs[i].trig_pattern),
+          .mask(params_in.inputs[i].mask),
 
           .trig_in(NIM_COM[i]),
           .trig_out(inputs[i])
@@ -79,6 +81,8 @@ module NIMPlus
           .delay(params_in.inputs[i+8].delay),
           .stretch(params_in.inputs[i+8].stretch),
           .invert(params_in.inputs[i+8].invert),
+          .trig_pattern(params_in.inputs[i+8].trig_pattern),
+          .mask(params_in.inputs[i+8].mask),
 
           .trig_in(LVDS_IN[i]),
           .trig_out(inputs[i+8])

@@ -481,6 +481,20 @@ module RTF_NIMPlus_sim
    always #6 USER_CLK1 <= ~USER_CLK1;
    always #5 USER_CLK2 <= ~USER_CLK2;
 
+   localparam [255:0] I1 = 256'haaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+   localparam [255:0] I2 = 256'hcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;
+   localparam [255:0] I3 = 256'hf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0;
+   localparam [255:0] I4 = 256'hff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00;
+   localparam [255:0] I5 = 256'hffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000;
+   localparam [255:0] I6 = 256'hffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000;
+   localparam [255:0] I7 = 256'hffffffffffffffff0000000000000000ffffffffffffffff0000000000000000;
+   localparam [255:0] I8 = 256'hffffffffffffffffffffffffffffffff00000000000000000000000000000000;
+
+   logic [255:0] lut8_table;
+   assign lut8_table = I1 & I2;
+   
+   logic [31:0] lut4_table;
+   assign lut4_table = I1;
    
    initial
    begin
@@ -498,11 +512,24 @@ module RTF_NIMPlus_sim
 
       #2000;
 
-      ethSendCom('d3, 64'ha12345678);
-      #1000;
-      //ethRecvCom(8'h00, 'h01, 'h00000000);
-      //#1000;
-      //ethRecvCom(8'h00, 'h01, 'h00000001);
+      #1000 ethSendCom('d6,  'd10);
+      #1000 ethSendCom('d5,  'b11111);
+      #1000 ethSendCom('d4,  'h00f03);
+      #1000 ethSendCom('d52, {10'b0000000001, lut8_table[0   +: 32]});
+      #1000 ethSendCom('d52, {10'b0000000010, lut8_table[32  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000000100, lut8_table[64  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000001000, lut8_table[96  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000010000, lut8_table[128 +: 32]});
+      #1000 ethSendCom('d52, {10'b0000100000, lut8_table[160 +: 32]});
+      #1000 ethSendCom('d52, {10'b0001000000, lut8_table[192 +: 32]});
+      #1000 ethSendCom('d52, {10'b0010000000, lut8_table[224 +: 32]});
+      #1000 ethSendCom('d52, {10'b1000000000, lut4_table});
+      #2000;
+
+      NIM_COM_P <= 8'h3;
+      #100;
+      NIM_COM_P <= 8'h0;
+      
    end
 
 endmodule

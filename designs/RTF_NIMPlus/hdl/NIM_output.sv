@@ -19,6 +19,7 @@ module NIM_output
    logic            lut8_out_1;
    logic            lut4_out_0;
    logic            lut4_out_1;
+   logic            dout_loc;
 
    CFGLUT_ctrl lut_ctrl
    (
@@ -83,13 +84,19 @@ module NIM_output
     .CE(CE[9]),   // Reconfiguration enable input
     .CLK(clk), // Clock input
     .O5(),   // 4-LUT output
-    .O6(dout),   // 5-LUT output
+    .O6(dout_loc),   // 5-LUT output
     .I0(lut8_out_0),   // Logic data input
     .I1(lut8_out_1),   // Logic data input
     .I2(lut4_out_0),   // Logic data input
     .I3(lut4_out_1),   // Logic data input
     .I4(1'b1)    // Logic data input
     );
+
+   always_comb
+   begin
+      if(!(|CE)) dout <= dout_loc;
+      else       dout <= 0;
+   end
 
 
 endmodule
