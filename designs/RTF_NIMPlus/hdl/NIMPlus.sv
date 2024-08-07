@@ -102,6 +102,8 @@ module NIMPlus
           .LUT_table(   params_in.outputs[i].lut_data),
           .LUT_table_we(params_in.outputs[i].lut_we),
 
+          .stretch(params_in.outputs[i].stretch),
+
           .inputs(inputs),
           .dout(NIM_OUT[i])
           );

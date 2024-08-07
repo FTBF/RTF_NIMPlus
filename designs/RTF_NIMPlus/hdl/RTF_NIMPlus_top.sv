@@ -99,6 +99,11 @@ module RTF_NIMPlus
    logic [1:0]       SMA_in;
    logic [1:0]       SMA_out;
 
+   genvar            i;
+
+   logic [3:0]       output_user_clks;
+   logic [3:0]       nim_outputs;
+
    // module parameter handling
    typedef struct    packed {
       // Register 3
@@ -116,20 +121,34 @@ module RTF_NIMPlus
     } input_param_t;
 
    typedef struct       packed {
+      // Register 1
+      logic [31:0]      padding1;
+      logic [31:0]      stretch;
       // Register 0
       logic [21:0]      padding0;
       logic [9:0]       lut_we;
       logic [31:0]      lut_data;
    } output_param_t;
 
+   typedef struct       packed {
+      // Register 0
+      logic [55:0]      padding0;
+      logic [7:0]       selection;
+   } mux_param_t;
+
    typedef struct    packed {
-      logic [8*64-1:0] padding;
-      //output regs 52-55
+      logic [38*64-1:0] padding;
+      //output mux settings 60-89
+      mux_param_t [29:0] mux;
+      //output regs 52-59
       output_param_t [3:0] outputs;
       //input registers 4-51
       input_param_t [11:0] inputs;
       // Register 3
-      logic [63:0]      padding3;
+      logic [39:0]      padding3;
+      logic [15:0]      user_pll_data;
+      logic [6:0]       user_pll_addr;
+      logic             user_pll_we;
       // Register 2
       logic [61:0]      padding2;
       logic             dac_wr_dac;
@@ -138,7 +157,8 @@ module RTF_NIMPlus
       logic [47:0]      padding1;
       logic [15:0]      dac_data;
       // Register 0
-      logic [61:0]      padding0;
+      logic [60:0]      padding0;
+      logic             pll_user_reset;
       logic             ext_clk_select;
       logic             reset;
     } param_t;
@@ -155,12 +175,13 @@ module RTF_NIMPlus
 
    localparam output_param_t output_self_reset = '{default:'0, lut_we:'1};
    localparam param_t self_reset = '{default:'0,
+                                     pll_user_reset:'1,
                                      outputs:{4{output_self_reset}},
 	                                 reset:'b1
                                      };
 
 
-   localparam N_REG = 64;
+   localparam N_REG = 128;
    localparam C_S_AXI_DATA_WIDTH = 64;
    IPIF_parameterDecode #(
 		.C_S_AXI_DATA_WIDTH(C_S_AXI_DATA_WIDTH),
@@ -219,8 +240,12 @@ module RTF_NIMPlus
       for(iparam = 0; iparam < 4; iparam += 1)
       begin
          params_from_IP.outputs[iparam].padding0 = '0;
+         params_from_IP.outputs[iparam].padding1 = '0;
       end
-      
+      for(iparam = 0; iparam < 30; iparam += 1)
+      begin
+         params_from_IP.mux[iparam].padding0 = '0;
+      end      
    end
    
    // ethernet interface
@@ -262,6 +287,8 @@ module RTF_NIMPlus
    logic pll_external_locked;
    logic pll_clk_gen_feedback;
    logic pll_clk_gen_locked;
+   logic pll_user_feedback;
+   logic pll_user_locked;
    logic external_clk_53;
    logic external_clk_160;
    logic input_clk_160;
@@ -340,6 +367,67 @@ module RTF_NIMPlus
     .CLKFBIN(pll_clk_gen_feedback)      // 1-bit input: Feedback clock
     );
 
+   PLLE2_ADV 
+   #(
+     .BANDWIDTH("OPTIMIZED"),  // OPTIMIZED, HIGH, LOW
+     .CLKFBOUT_MULT(5),        // Multiply value for all CLKOUT, (2-64)
+     .CLKFBOUT_PHASE(0.0),     // Phase offset in degrees of CLKFB, (-360.000-360.000).
+     // CLKIN_PERIOD: Input clock period in nS to ps resolution (i.e. 33.333 is 30 MHz).
+     .CLKIN1_PERIOD(0.0),
+     .CLKIN2_PERIOD(0.0),
+     // CLKOUT0_DIVIDE - CLKOUT5_DIVIDE: Divide amount for CLKOUT (1-128)
+     .CLKOUT0_DIVIDE(8),
+     .CLKOUT1_DIVIDE(8),
+     .CLKOUT2_DIVIDE(8),
+     .CLKOUT3_DIVIDE(8),
+     // CLKOUT0_DUTY_CYCLE - CLKOUT5_DUTY_CYCLE: Duty cycle for CLKOUT outputs (0.001-0.999).
+     .CLKOUT0_DUTY_CYCLE(0.5),
+     .CLKOUT1_DUTY_CYCLE(0.5),
+     .CLKOUT2_DUTY_CYCLE(0.5),
+     .CLKOUT3_DUTY_CYCLE(0.5),
+     // CLKOUT0_PHASE - CLKOUT5_PHASE: Phase offset for CLKOUT outputs (-360.000-360.000).
+     .CLKOUT0_PHASE(0.0),
+     .CLKOUT1_PHASE(0.0),
+     .CLKOUT2_PHASE(0.0),
+     .CLKOUT3_PHASE(0.0),
+     .COMPENSATION("ZHOLD"),   // ZHOLD, BUF_IN, EXTERNAL, INTERNAL
+     .DIVCLK_DIVIDE(1),        // Master division value (1-56)
+     // REF_JITTER: Reference input jitter in UI (0.000-0.999).
+     .REF_JITTER1(0.0),
+     .REF_JITTER2(0.0),
+     .STARTUP_WAIT("FALSE")    // Delay DONE until PLL Locks, ("TRUE"/"FALSE")
+     ) pll_user_clks 
+   (
+    // Clock Outputs: 1-bit (each) output: User configurable clock outputs
+    .CLKOUT0(output_user_clks[0]),   // 1-bit output: CLKOUT0
+    .CLKOUT1(output_user_clks[1]),   // 1-bit output: CLKOUT1
+    .CLKOUT2(output_user_clks[2]),   // 1-bit output: CLKOUT2
+    .CLKOUT3(output_user_clks[3]),   // 1-bit output: CLKOUT3
+    // Feedback Clocks: 1-bit (each) output: Clock feedback ports
+    .CLKFBOUT(pll_user_feedback), // 1-bit output: Feedback clock
+    .LOCKED(pll_user_locked),     // 1-bit output: LOCK
+    // Clock Inputs: 1-bit (each) input: Clock inputs
+    .CLKIN1(input_clk_160),     // 1-bit input: Primary clock
+    .CLKIN2(1'b0),     // 1-bit input: Secondary clock
+    // Control Ports: 1-bit (each) input: PLL control ports
+    .CLKINSEL(1'b1), // 1-bit input: Clock select, High=CLKIN1 Low=CLKIN2
+    .PWRDWN(1'b0),     // 1-bit input: Power-down
+    .RST(params_to_IP.pll_user_reset),           // 1-bit input: Reset
+
+    // DRP Ports: 7-bit (each) input: Dynamic reconfiguration ports
+    .DADDR(params_to_IP.user_pll_addr),       // 7-bit input: DRP address
+    .DCLK(clk_160),         // 1-bit input: DRP clock
+    .DEN(1'b1),           // 1-bit input: DRP enable
+    .DI(params_to_IP.user_pll_data),             // 16-bit input: DRP data
+    .DWE(params_to_IP.user_pll_we),           // 1-bit input: DRP write enable
+    // DRP Ports: 16-bit (each) output: Dynamic reconfiguration ports
+    .DO(),             // 16-bit output: DRP data
+    .DRDY(),         // 1-bit output: DRP ready
+    // Feedback Clocks: 1-bit (each) input: Clock feedback ports
+    .CLKFBIN(pll_user_feedback)    // 1-bit input: Feedback clock
+    );
+
+   
    //NIM+ logic
    NIMPlus
    #(
@@ -360,7 +448,7 @@ module RTF_NIMPlus
 
     .LVDS_IN(LVDS_IN), // 4 LVDS in
 
-    .NIM_OUT(NIM_OUT), // 4 NIM outputs
+    .NIM_OUT(nim_outputs), // 4 NIM outputs
 
     .DAC_SER_CLK(DAC_SER_CLK), // DAC Programming interface clock
     .DAC_NSYNC(DAC_NSYNC), // DAC Programming interface sync
@@ -372,9 +460,10 @@ module RTF_NIMPlus
     );
 
 
-   // I/O buffers
+   // I/O buffers and output multiplexers
+   wire [255:0] NIM_outputs = {output_user_clks, nim_outputs};
+   wire [255:0] RTF_outputs = {SMA_in, RJ45_in_2, RJ45_in_1, output_user_clks, nim_outputs};
    generate
-      genvar i;
       for(i = 0; i < 8; i += 1)
       begin
          IBUFDS NIM_COM_buf ( .O(NIM_COM[i]), .I(NIM_COM_P[i]), .IB(NIM_COM_N[i]) );
@@ -385,6 +474,7 @@ module RTF_NIMPlus
 
       for(i = 0; i < 2; i += 1)
       begin
+         assign SMA_out[i] = RTF_outputs[params_to_IP.mux[i+28].selection];
          IBUFDS SMA_in_buf ( .O(SMA_in[i]), .I(SMA_in_P[i]), .IB(SMA_in_N[i]) );
          OBUFDS SMA_out_buf ( .O(SMA_out_P[i]), .OB(SMA_out_N[i]), .I(SMA_out[i]));
       end
@@ -392,11 +482,14 @@ module RTF_NIMPlus
       for(i = 0; i < 4; i += 1)
       begin
          IBUFDS LVDS_IN_buf ( .O(LVDS_IN[i]), .I(LVDS_IN_P[i]), .IB(LVDS_IN_N[i]) );
+         assign NIM_OUT[i] = NIM_outputs[params_to_IP.mux[i].selection];
          OBUFDS NIM_OUT_buf ( .O(NIM_OUT_P[i]), .OB(NIM_OUT_N[i]), .I(NIM_OUT[i]) );
       end
 
       for(i = 0; i < 12; i += 1)
       begin
+         assign RJ45_out_1[i] = RTF_outputs[params_to_IP.mux[i+ 4].selection];
+         assign RJ45_out_2[i] = RTF_outputs[params_to_IP.mux[i+16].selection];
          OBUFDS RJ45_out_1_buf ( .O(RJ45_out_1_P[i]), .OB(RJ45_out_1_N[i]), .I(RJ45_out_1[i])  );
          OBUFDS RJ45_out_2_buf ( .O(RJ45_out_2_P[i]), .OB(RJ45_out_2_N[i]), .I(RJ45_out_2[i])  );
       end

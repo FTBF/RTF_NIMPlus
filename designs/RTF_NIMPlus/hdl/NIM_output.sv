@@ -7,6 +7,8 @@ module NIM_output
 
  input logic [31:0] LUT_table,
  input logic [9:0]  LUT_table_we,
+
+ input logic [31:0] stretch,
  
  input logic [11:0] inputs,
  output logic       dout
@@ -20,6 +22,8 @@ module NIM_output
    logic            lut4_out_0;
    logic            lut4_out_1;
    logic            dout_loc;
+   logic            dout_z;
+   logic [31:0]     output_sr;
 
    CFGLUT_ctrl lut_ctrl
    (
@@ -92,11 +96,19 @@ module NIM_output
     .I4(1'b1)    // Logic data input
     );
 
-   always_comb
+   always @(posedge clk)
    begin
-      if(!(|CE)) dout <= dout_loc;
-      else       dout <= 0;
+      dout_z <= dout_loc;
+      if(reset) output_sr <= '0;
+      else if({dout_z, dout_loc} == 2'b01) output_sr <= stretch;
+      else output_sr <= {1'b0, output_sr[31:1]};
    end
 
+   always_comb
+   begin
+      if(|CE) dout <= 0;
+      if(stretch == 0) dout <= dout_loc;
+      else             dout <= output_sr[0];
+   end
 
 endmodule
