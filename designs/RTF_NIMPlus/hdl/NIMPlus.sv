@@ -21,6 +21,8 @@ module NIMPlus
 
     output logic [3:0] NIM_OUT, // 4 NIM outputs
 
+    output logic [1:0] pulse_out,
+
     output logic       DAC_SER_CLK, // DAC Programming interface clock
     output logic       DAC_NSYNC, // DAC Programming interface sync
     output logic       DAC_DIN, // DAC Programming interface data
@@ -103,12 +105,32 @@ module NIMPlus
           .LUT_table_we(params_in.outputs[i].lut_we),
 
           .stretch(params_in.outputs[i].stretch),
+          .hold(params_in.outputs[i].hold),
+          .trig_pol(params_in.outputs[i].trig_pol),
 
           .inputs(inputs),
           .dout(NIM_OUT[i])
           );
       end
    endgenerate
+
+   //pulse generator logic
+   generate
+      for(i = 0; i < 2; i += 1)
+      begin
+         NIM_pulse_gen pulse_gen
+         (
+          .clk(clk_fast),
+          .reset(reset),
+
+          .length(params_in.pulses[i].length),
+          .period(params_in.pulses[i].period),
+
+          .dout(pulse_out[i])
+          );
+      end
+   endgenerate
+
    
 endmodule
 

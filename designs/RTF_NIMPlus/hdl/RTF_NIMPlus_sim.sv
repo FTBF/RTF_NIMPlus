@@ -512,24 +512,37 @@ module RTF_NIMPlus_sim
 
       #2000;
 
-      #1000 ethSendCom('d6,  'd10);
-      #1000 ethSendCom('d5,  'b11111);
-      #1000 ethSendCom('d4,  'h00f03);
-      #1000 ethSendCom('d52, {10'b0000000001, lut8_table[0   +: 32]});
-      #1000 ethSendCom('d52, {10'b0000000010, lut8_table[32  +: 32]});
-      #1000 ethSendCom('d52, {10'b0000000100, lut8_table[64  +: 32]});
-      #1000 ethSendCom('d52, {10'b0000001000, lut8_table[96  +: 32]});
-      #1000 ethSendCom('d52, {10'b0000010000, lut8_table[128 +: 32]});
-      #1000 ethSendCom('d52, {10'b0000100000, lut8_table[160 +: 32]});
-      #1000 ethSendCom('d52, {10'b0001000000, lut8_table[192 +: 32]});
-      #1000 ethSendCom('d52, {10'b0010000000, lut8_table[224 +: 32]});
-      #1000 ethSendCom('d52, {10'b1000000000, lut4_table});
+      #1000 ethSendCom('d6,  'd0);      //delay
+      #1000 ethSendCom('d5,  'b11111);  //stretch
+      #1000 ethSendCom('d4,  'h00f03);  //trig
+      #1000 ethSendCom('d54, {10'b0000000001, lut8_table[0   +: 32]});
+      #1000 ethSendCom('d54, {10'b0000000010, lut8_table[32  +: 32]});
+      #1000 ethSendCom('d54, {10'b0000000100, lut8_table[64  +: 32]});
+      #1000 ethSendCom('d54, {10'b0000001000, lut8_table[96  +: 32]});
+      #1000 ethSendCom('d54, {10'b0000010000, lut8_table[128 +: 32]});
+      #1000 ethSendCom('d54, {10'b0000100000, lut8_table[160 +: 32]});
+      #1000 ethSendCom('d54, {10'b0001000000, lut8_table[192 +: 32]});
+      #1000 ethSendCom('d54, {10'b0010000000, lut8_table[224 +: 32]});
+      #1000 ethSendCom('d54, {10'b1000000000, lut4_table});
+      #1000 ethSendCom('d55, 'h10000000ff);
+      #1000 ethSendCom('d60, 'd1);
+      #1000 ethSendCom('d61, 'd9);
+      #1000 ethSendCom('d64, 'd4);
+      #1000 ethSendCom('d90, 'h40010);
+      #1000 ethSendCom('d4,  'h5);
       #2000;
 
       NIM_COM_P <= 8'h3;
       #100;
       NIM_COM_P <= 8'h0;
-      
+      #100;
+      NIM_COM_P <= 8'h3;
+      #100;
+      NIM_COM_P <= 8'h0;      
+      #100;
+      NIM_COM_P <= 8'h3;
+      #100;
+      NIM_COM_P <= 8'h0;      
    end
 
 endmodule

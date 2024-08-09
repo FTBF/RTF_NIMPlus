@@ -104,6 +104,12 @@ module RTF_NIMPlus
    logic [3:0]       output_user_clks;
    logic [3:0]       nim_outputs;
 
+   logic             user_pll_we_z;
+   logic             user_pll_en_z;
+   logic [15:0]      dout;
+   logic             drdy;
+
+
    // module parameter handling
    typedef struct    packed {
       // Register 3
@@ -122,7 +128,9 @@ module RTF_NIMPlus
 
    typedef struct       packed {
       // Register 1
-      logic [31:0]      padding1;
+      logic [14:0]      padding1;
+      logic             trig_pol;
+      logic [15:0]      hold;
       logic [31:0]      stretch;
       // Register 0
       logic [21:0]      padding0;
@@ -136,8 +144,17 @@ module RTF_NIMPlus
       logic [7:0]       selection;
    } mux_param_t;
 
+   typedef struct       packed {
+      // Register 0
+      logic [41:0]      padding0;
+      logic [5:0]       length;
+      logic [15:0]      period;
+   } pulse_param_t;
+
    typedef struct    packed {
-      logic [38*64-1:0] padding;
+      logic [36*64-1:0] padding;
+      //pulse gen settings 90-91
+      pulse_param_t [1:0] pulses;
       //output mux settings 60-89
       mux_param_t [29:0] mux;
       //output regs 52-59
@@ -145,10 +162,11 @@ module RTF_NIMPlus
       //input registers 4-51
       input_param_t [11:0] inputs;
       // Register 3
-      logic [39:0]      padding3;
+      logic [38:0]      padding3;
       logic [15:0]      user_pll_data;
       logic [6:0]       user_pll_addr;
       logic             user_pll_we;
+      logic             user_pll_en;
       // Register 2
       logic [61:0]      padding2;
       logic             dac_wr_dac;
@@ -292,6 +310,7 @@ module RTF_NIMPlus
    logic external_clk_53;
    logic external_clk_160;
    logic input_clk_160;
+   logic [1:0] pulse_out;
 
    BUFG external_clk_buf(.O(external_clk_53), .I(NIM_COM[0]));
 
@@ -367,13 +386,19 @@ module RTF_NIMPlus
     .CLKFBIN(pll_clk_gen_feedback)      // 1-bit input: Feedback clock
     );
 
+   always @(posedge clk_160)
+   begin
+      user_pll_we_z <= params_to_IP.user_pll_we;
+      user_pll_en_z <= params_to_IP.user_pll_en;
+   end
+   
    PLLE2_ADV 
    #(
      .BANDWIDTH("OPTIMIZED"),  // OPTIMIZED, HIGH, LOW
      .CLKFBOUT_MULT(5),        // Multiply value for all CLKOUT, (2-64)
      .CLKFBOUT_PHASE(0.0),     // Phase offset in degrees of CLKFB, (-360.000-360.000).
      // CLKIN_PERIOD: Input clock period in nS to ps resolution (i.e. 33.333 is 30 MHz).
-     .CLKIN1_PERIOD(0.0),
+     .CLKIN1_PERIOD(6.25),
      .CLKIN2_PERIOD(0.0),
      // CLKOUT0_DIVIDE - CLKOUT5_DIVIDE: Divide amount for CLKOUT (1-128)
      .CLKOUT0_DIVIDE(8),
@@ -417,16 +442,17 @@ module RTF_NIMPlus
     // DRP Ports: 7-bit (each) input: Dynamic reconfiguration ports
     .DADDR(params_to_IP.user_pll_addr),       // 7-bit input: DRP address
     .DCLK(clk_160),         // 1-bit input: DRP clock
-    .DEN(1'b1),           // 1-bit input: DRP enable
+    .DEN(params_to_IP.user_pll_en && !user_pll_en_z),           // 1-bit input: DRP enable
     .DI(params_to_IP.user_pll_data),             // 16-bit input: DRP data
-    .DWE(params_to_IP.user_pll_we),           // 1-bit input: DRP write enable
+    .DWE(params_to_IP.user_pll_we && !user_pll_we_z),           // 1-bit input: DRP write enable
     // DRP Ports: 16-bit (each) output: Dynamic reconfiguration ports
-    .DO(),             // 16-bit output: DRP data
-    .DRDY(),         // 1-bit output: DRP ready
+    .DO(dout),             // 16-bit output: DRP data
+    .DRDY(drdy),         // 1-bit output: DRP ready
     // Feedback Clocks: 1-bit (each) input: Clock feedback ports
     .CLKFBIN(pll_user_feedback)    // 1-bit input: Feedback clock
     );
 
+   
    
    //NIM+ logic
    NIMPlus
@@ -450,6 +476,8 @@ module RTF_NIMPlus
 
     .NIM_OUT(nim_outputs), // 4 NIM outputs
 
+    .pulse_out(pulse_out),
+
     .DAC_SER_CLK(DAC_SER_CLK), // DAC Programming interface clock
     .DAC_NSYNC(DAC_NSYNC), // DAC Programming interface sync
     .DAC_DIN(DAC_DIN), // DAC Programming interface data
@@ -461,8 +489,8 @@ module RTF_NIMPlus
 
 
    // I/O buffers and output multiplexers
-   wire [255:0] NIM_outputs = {output_user_clks, nim_outputs};
-   wire [255:0] RTF_outputs = {SMA_in, RJ45_in_2, RJ45_in_1, output_user_clks, nim_outputs};
+   wire [255:0] NIM_outputs = {pulse_out, output_user_clks, nim_outputs};
+   wire [255:0] RTF_outputs = {SMA_in, RJ45_in_2, RJ45_in_1, pulse_out, output_user_clks, nim_outputs};
    generate
       for(i = 0; i < 8; i += 1)
       begin
