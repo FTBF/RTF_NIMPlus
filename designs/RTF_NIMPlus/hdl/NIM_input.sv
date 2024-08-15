@@ -17,7 +17,7 @@ module NIM_input
 
    logic [63:0]     input_sr;
    logic            trig_in_polsel;
-   logic [6:0]      trig_in_sr;
+   logic [7:0]      trig_in_sr;
    logic            delay_input;
    logic            delay_1_cascade;
    logic            delay_2_cascade;
@@ -33,7 +33,7 @@ module NIM_input
    begin
       trig_in_sr <= {trig_in_sr[6:0], trig_in_polsel};
       if(reset) input_sr <= '0;
-      else if( &( ( ~({trig_in_sr[6:0], trig_in_polsel} ^ trig_pattern )) | ~mask ) ) input_sr <= stretch;
+      else if( &( ( ~(trig_in_sr ^ trig_pattern )) | ~mask ) ) input_sr <= stretch;
       else input_sr <= {1'b0, input_sr[63:1]};
    end
 

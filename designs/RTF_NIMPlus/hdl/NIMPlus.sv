@@ -33,6 +33,8 @@ module NIMPlus
     );
 
    logic [11:0]        inputs;
+
+   integer INPUT_CHAN_MAP [7:0] = {0,2,4,6,1,3,5,7};
    
    //UNLATCH pins should be held high to keep latches open
    assign NIM_COM_UNLATCH = 8'hff;
@@ -40,7 +42,7 @@ module NIMPlus
    //DAC settings
    DAC_Control dac_ctrl
    ( 
-		.blk_data_in(params_in.dac_data),
+		.blk_data_in(params_in.dac_data[15]?params_in.dac_data:{1'b0, INPUT_CHAN_MAP[params_in.dac_data[14:12]], params_in.dac_data[11:0]}),
 		.clock(clk_dac),
 		.reset_p(reset),
 		.wr_blk_p(params_in.dac_wr_blk),
@@ -68,7 +70,7 @@ module NIMPlus
           .trig_pattern(params_in.inputs[i].trig_pattern),
           .mask(params_in.inputs[i].mask),
 
-          .trig_in(NIM_COM[i]),
+          .trig_in(NIM_COM[INPUT_CHAN_MAP[i]]),
           .trig_out(inputs[i])
           );
       end // for (i = 0; i < 8; i += 1)
@@ -108,7 +110,7 @@ module NIMPlus
           .hold(params_in.outputs[i].hold),
           .trig_pol(params_in.outputs[i].trig_pol),
 
-          .inputs(inputs),
+          .inputs({inputs[11:8], 1'b0, inputs[6:0]}),
           .dout(NIM_OUT[i])
           );
       end

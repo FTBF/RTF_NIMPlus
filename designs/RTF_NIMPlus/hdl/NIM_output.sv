@@ -101,7 +101,7 @@ module NIM_output
     .I4(1'b1)    // Logic data input
     );
 
-   assign out_trigger = ({dout_z, dout_loc} == (trig_pol?2'b01:2'b10)) && hold_cnt == 0;
+   assign out_trigger = ({dout_z, dout_loc} == (trig_pol?2'b10:2'b01)) && hold_cnt == 0;
    always @(posedge clk)
    begin
       dout_z <= dout_loc;

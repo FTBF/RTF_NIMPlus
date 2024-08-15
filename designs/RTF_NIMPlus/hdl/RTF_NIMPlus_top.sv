@@ -140,7 +140,8 @@ module RTF_NIMPlus
 
    typedef struct       packed {
       // Register 0
-      logic [55:0]      padding0;
+      logic [54:0]      padding0;
+      logic             invert;
       logic [7:0]       selection;
    } mux_param_t;
 
@@ -193,7 +194,9 @@ module RTF_NIMPlus
 
    localparam output_param_t output_self_reset = '{default:'0, lut_we:'1};
    localparam param_t self_reset = '{default:'0,
-                                     pll_user_reset:'1,
+                                     pll_user_reset:'0,
+                                     user_pll_we:'1,
+                                     user_pll_en:'1,
                                      outputs:{4{output_self_reset}},
 	                                 reset:'b1
                                      };
@@ -307,8 +310,11 @@ module RTF_NIMPlus
    logic pll_clk_gen_locked;
    logic pll_user_feedback;
    logic pll_user_locked;
+   logic pll_user_clk1_feedback;
+   logic pll_user_clk1_locked;
    logic external_clk_53;
    logic external_clk_160;
+   logic internal_clk_160;
    logic input_clk_160;
    logic [1:0] pulse_out;
 
@@ -317,7 +323,7 @@ module RTF_NIMPlus
    BUFGMUX_CTRL BUFGMUX_extClkSel 
    (
     .O(input_clk_160),   // 1-bit output: Clock output
-    .I0(USER_CLK1), // 1-bit input: Clock input (S=0)
+    .I0(internal_clk_160), // 1-bit input: Clock input (S=0)
     .I1(external_clk_160), // 1-bit input: Clock input (S=1)
     .S(params_from_bus.ext_clk_select && pll_external_locked) //params_from_bus instead of to_IP is intentional 
     );
@@ -326,7 +332,7 @@ module RTF_NIMPlus
    #(
      .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
      .CLKFBOUT_MULT_F(18.0),     // Multiply value for all CLKOUT (2.000-64.000).
-     .CLKOUT0_DIVIDE_F(6.0),    // Divide amount for CLKOUT0 (1.000-128.000).
+     .CLKOUT0_DIVIDE_F(9.0),    // Divide amount for CLKOUT0 (1.000-128.000).
      .CLKIN1_PERIOD(18.868),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
      .CLKOUT0_DUTY_CYCLE(0.5),
      .CLKOUT0_PHASE(0.0),
@@ -349,17 +355,41 @@ module RTF_NIMPlus
    MMCME2_BASE 
    #(
      .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
-     .CLKFBOUT_MULT_F(4.0),     // Multiply value for all CLKOUT (2.000-64.000).
+     .CLKFBOUT_MULT_F(8.0),     // Multiply value for all CLKOUT (2.000-64.000).
+     .CLKOUT0_DIVIDE_F(5.0),    // Divide amount for CLKOUT0 (1.000-128.000).
+     .CLKIN1_PERIOD(10.000),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
+     .CLKOUT0_DUTY_CYCLE(0.5),
+     .CLKOUT0_PHASE(0.0),
+     .CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+     .DIVCLK_DIVIDE(1),         // Master division value (1-106)
+     .REF_JITTER1(0.0),         // Reference input jitter in UI (0.000-0.999).
+     .STARTUP_WAIT("FALSE")     // Delays DONE until MMCM is locked (FALSE, TRUE)
+     ) pll_user_clk1
+   (
+    .CLKOUT0(internal_clk_160),     // 1-bit output: CLKOUT0
+    .CLKFBOUT(pll_user_clk1_feedback),   // 1-bit output: Feedback clock
+    .CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
+    .LOCKED(pll_user_clk1_locked),       // 1-bit output: LOCK
+    .CLKIN1(USER_CLK1),       // 1-bit input: Clock
+    .PWRDWN(1'b0),       // 1-bit input: Power-down
+    .RST(1'b0),             // 1-bit input: Reset
+    .CLKFBIN(pll_user_clk1_feedback)      // 1-bit input: Feedback clock
+    );
+
+   MMCME2_BASE 
+   #(
+     .BANDWIDTH("OPTIMIZED"),   // Jitter programming (OPTIMIZED, HIGH, LOW)
+     .CLKFBOUT_MULT_F(5.0),     // Multiply value for all CLKOUT (2.000-64.000).
      .CLKFBOUT_PHASE(0.0),      // Phase offset in degrees of CLKFB (-360.000-360.000).
      .CLKIN1_PERIOD(6.25),       // Input clock period in ns to ps resolution (i.e. 33.333 is 30 MHz).
      // CLKOUT0_DIVIDE - CLKOUT6_DIVIDE: Divide amount for each CLKOUT (1-128)
-     .CLKOUT1_DIVIDE(4),
-     .CLKOUT2_DIVIDE(8),
-     .CLKOUT3_DIVIDE(16),
-     .CLKOUT4_DIVIDE(128),
+     .CLKOUT1_DIVIDE(5),
+     .CLKOUT2_DIVIDE(10),
+     .CLKOUT3_DIVIDE(20),
+     .CLKOUT4_DIVIDE(80),
      .CLKOUT5_DIVIDE(1),
      .CLKOUT6_DIVIDE(1),
-     .CLKOUT0_DIVIDE_F(2.0),    // Divide amount for CLKOUT0 (1.000-128.000).
+     .CLKOUT0_DIVIDE_F(5),    // Divide amount for CLKOUT0 (1.000-128.000).
      .CLKOUT4_CASCADE("FALSE"), // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
      .DIVCLK_DIVIDE(1),         // Master division value (1-106)
      .REF_JITTER1(0.0),         // Reference input jitter in UI (0.000-0.999).
@@ -453,7 +483,6 @@ module RTF_NIMPlus
     );
 
    
-   
    //NIM+ logic
    NIMPlus
    #(
@@ -506,11 +535,14 @@ module RTF_NIMPlus
          IBUFDS SMA_in_buf ( .O(SMA_in[i]), .I(SMA_in_P[i]), .IB(SMA_in_N[i]) );
          OBUFDS SMA_out_buf ( .O(SMA_out_P[i]), .OB(SMA_out_N[i]), .I(SMA_out[i]));
       end
-      
+
+      assign NIM_OUT[0] = params_to_IP.mux[3].invert ^ NIM_outputs[params_to_IP.mux[3].selection];
+      assign NIM_OUT[1] = params_to_IP.mux[1].invert ^ NIM_outputs[params_to_IP.mux[1].selection];
+      assign NIM_OUT[2] = params_to_IP.mux[2].invert ^ NIM_outputs[params_to_IP.mux[2].selection];
+      assign NIM_OUT[3] = params_to_IP.mux[0].invert ^ NIM_outputs[params_to_IP.mux[0].selection];      
       for(i = 0; i < 4; i += 1)
       begin
          IBUFDS LVDS_IN_buf ( .O(LVDS_IN[i]), .I(LVDS_IN_P[i]), .IB(LVDS_IN_N[i]) );
-         assign NIM_OUT[i] = NIM_outputs[params_to_IP.mux[i].selection];
          OBUFDS NIM_OUT_buf ( .O(NIM_OUT_P[i]), .OB(NIM_OUT_N[i]), .I(NIM_OUT[i]) );
       end
 

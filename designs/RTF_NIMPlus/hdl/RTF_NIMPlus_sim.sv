@@ -512,6 +512,9 @@ module RTF_NIMPlus_sim
 
       #2000;
 
+      #1000 ethSendCom('d1,  'h1a00);      //delay
+      #1000 ethSendCom('d2,  'h1);      //delay
+      #1000 ethSendCom('d2,  'h2);      //delay
       #1000 ethSendCom('d6,  'd0);      //delay
       #1000 ethSendCom('d5,  'b11111);  //stretch
       #1000 ethSendCom('d4,  'h00f03);  //trig
@@ -529,7 +532,25 @@ module RTF_NIMPlus_sim
       #1000 ethSendCom('d61, 'd9);
       #1000 ethSendCom('d64, 'd4);
       #1000 ethSendCom('d90, 'h40010);
-      #1000 ethSendCom('d4,  'h5);
+      #1000 ethSendCom('d0,  'b100);
+      #1000 ethSendCom('d3,  'h3 | ('h0 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h1 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h2 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h3 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h4 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h5 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h6 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h7 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h8 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('h9 << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('ha << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('hb << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('hc << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('hd << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('he << 2) | ('habcd << 9));
+      #1000 ethSendCom('d3,  'h3 | ('hf << 2) | ('habcd << 9));
+
+
       #2000;
 
       NIM_COM_P <= 8'h3;
