@@ -7,3 +7,6 @@
 [submodule "shared/ip_repo/UtilityIP"]
 	path = shared/ip_repo/UtilityIP
 	url = git@github.com:FTBF/UtilityIP.git
+[submodule "shared/ip_repo/Xil_PLL_ctrl"]
+	path = shared/ip_repo/Xil_PLL_ctrl
+	url = git@github.com:FTBF/Xil_PLL_ctrl.git

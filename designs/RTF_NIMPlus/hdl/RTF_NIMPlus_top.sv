@@ -163,15 +163,19 @@ module RTF_NIMPlus
       //input registers 4-51
       input_param_t [11:0] inputs;
       // Register 3
-      logic [38:0]      padding3;
-      logic [15:0]      user_pll_data;
-      logic [6:0]       user_pll_addr;
+      logic [60:0]      padding2;
       logic             user_pll_we;
-      logic             user_pll_en;
-      // Register 2
-      logic [61:0]      padding2;
       logic             dac_wr_dac;
       logic             dac_wr_blk;            
+      // Register 2
+      logic [7:0]       clkfbout_mult;
+      logic [7:0]       divclk_divide;
+      logic [7:0]       clkout0_divide;
+      logic [7:0]       clkout1_divide;
+      logic [7:0]       clkout2_divide;
+      logic [7:0]       clkout3_divide;
+      logic [7:0]       clkout4_divide;
+      logic [7:0]       clkout5_divide;
       // Register 1
       logic [47:0]      padding1;
       logic [15:0]      dac_data;
@@ -189,14 +193,21 @@ module RTF_NIMPlus
    
    localparam param_t defaults = param_t'{default:'0,
                                           inputs:{12{'{default:'0, mask:8'h3, trig_pattern:8'h1}}},
-                                          ext_clk_select:0
+                                          ext_clk_select:0,
+                                          clkfbout_mult:8'd5,
+                                          divclk_divide:8'd1,
+                                          clkout0_divide:8'd5,
+                                          clkout1_divide:8'd5,
+                                          clkout2_divide:8'd5,
+                                          clkout3_divide:8'd5,
+                                          clkout4_divide:8'd5,
+                                          clkout5_divide:8'd5
                                           };
 
    localparam output_param_t output_self_reset = '{default:'0, lut_we:'1};
    localparam param_t self_reset = '{default:'0,
                                      pll_user_reset:'0,
                                      user_pll_we:'1,
-                                     user_pll_en:'1,
                                      outputs:{4{output_self_reset}},
 	                                 reset:'b1
                                      };
@@ -416,11 +427,42 @@ module RTF_NIMPlus
     .CLKFBIN(pll_clk_gen_feedback)      // 1-bit input: Feedback clock
     );
 
-   always @(posedge clk_160)
-   begin
-      user_pll_we_z <= params_to_IP.user_pll_we;
-      user_pll_en_z <= params_to_IP.user_pll_en;
-   end
+   logic [15:0] userpll_do;
+   logic        userpll_drdy;
+   logic        userpll_dwe;
+   logic        userpll_den;
+   logic [6:0]  userpll_daddr;
+   logic [15:0] userpll_di;
+   logic        userpll_rst;
+   
+   plle2_drp pll_ctrl
+   (
+    .S1_CLKFBOUT_MULT (params_to_IP.clkfbout_mult),
+    .S1_DIVCLK_DIVIDE (params_to_IP.divclk_divide),
+    .S1_CLKOUT0_DIVIDE(params_to_IP.clkout0_divide),
+    .S1_CLKOUT1_DIVIDE(params_to_IP.clkout1_divide),
+    .S1_CLKOUT2_DIVIDE(params_to_IP.clkout2_divide),
+    .S1_CLKOUT3_DIVIDE(params_to_IP.clkout3_divide),
+    .S1_CLKOUT4_DIVIDE(params_to_IP.clkout4_divide),
+    .S1_CLKOUT5_DIVIDE(params_to_IP.clkout5_divide),
+
+    .SEN(params_to_IP.user_pll_we),
+    .SCLK(clk_160),
+    .RST(reset),
+    .SRDY(),
+
+    .DO(userpll_do),
+    .DRDY(userpll_drdy),
+    .LOCK_REG_CLK_IN(clk_160),
+    .LOCKED_IN(pll_user_locked),
+    .DWE(userpll_dwe),
+    .DEN(userpll_den),
+    .DADDR(userpll_daddr),
+    .DI(userpll_di),
+    .DCLK(clk_160),
+    .RST_PLL(userpll_rst),
+    .LOCKED_OUT()
+    );
    
    PLLE2_ADV 
    #(
@@ -467,17 +509,17 @@ module RTF_NIMPlus
     // Control Ports: 1-bit (each) input: PLL control ports
     .CLKINSEL(1'b1), // 1-bit input: Clock select, High=CLKIN1 Low=CLKIN2
     .PWRDWN(1'b0),     // 1-bit input: Power-down
-    .RST(params_to_IP.pll_user_reset),           // 1-bit input: Reset
+    .RST(userpll_rst),           // 1-bit input: Reset
 
     // DRP Ports: 7-bit (each) input: Dynamic reconfiguration ports
-    .DADDR(params_to_IP.user_pll_addr),       // 7-bit input: DRP address
+    .DADDR(userpll_daddr),       // 7-bit input: DRP address
     .DCLK(clk_160),         // 1-bit input: DRP clock
-    .DEN(params_to_IP.user_pll_en && !user_pll_en_z),           // 1-bit input: DRP enable
-    .DI(params_to_IP.user_pll_data),             // 16-bit input: DRP data
-    .DWE(params_to_IP.user_pll_we && !user_pll_we_z),           // 1-bit input: DRP write enable
+    .DEN(userpll_den),           // 1-bit input: DRP enable
+    .DI(userpll_di),             // 16-bit input: DRP data
+    .DWE(userpll_dwe),           // 1-bit input: DRP write enable
     // DRP Ports: 16-bit (each) output: Dynamic reconfiguration ports
-    .DO(dout),             // 16-bit output: DRP data
-    .DRDY(drdy),         // 1-bit output: DRP ready
+    .DO(userpll_do),             // 16-bit output: DRP data
+    .DRDY(userpll_drdy),         // 1-bit output: DRP ready
     // Feedback Clocks: 1-bit (each) input: Clock feedback ports
     .CLKFBIN(pll_user_feedback)    // 1-bit input: Feedback clock
     );

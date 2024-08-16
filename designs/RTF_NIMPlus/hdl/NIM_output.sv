@@ -29,7 +29,18 @@ module NIM_output
    logic [15:0]     hold_cnt;
    logic            out_trigger;
    logic            out_trigger_z;
+   logic [31:0]     stretch_z;
+   logic [15:0]     hold_z;
+   logic            trig_pol_z;
 
+   //buffer inputs to relieve timing constraints
+   always @(posedge clk)
+   begin
+      stretch_z <= stretch;
+      hold_z <= hold;
+      trig_pol_z <= trig_pol;
+   end
+   
    CFGLUT_ctrl lut_ctrl
    (
     .clk(clk),
@@ -101,19 +112,19 @@ module NIM_output
     .I4(1'b1)    // Logic data input
     );
 
-   assign out_trigger = ({dout_z, dout_loc} == (trig_pol?2'b10:2'b01)) && hold_cnt == 0;
+   assign out_trigger = ({dout_z, dout_loc} == (trig_pol_z?2'b10:2'b01)) && hold_cnt == 0;
    always @(posedge clk)
    begin
       dout_z <= dout_loc;
       if(reset)            output_sr <= '0;
-      else if(out_trigger) output_sr <= stretch;
+      else if(out_trigger) output_sr <= stretch_z;
       else                 output_sr <= {1'b0, output_sr[31:1]};
    end
 
    always @(posedge clk)
    begin
       out_trigger_z <= out_trigger;
-      if(reset || hold == 0) hold_cnt <= '0;
+      if(reset || hold_z == 0) hold_cnt <= '0;
       else if(hold_cnt > 0)  hold_cnt <= hold_cnt - 1;
       else if(out_trigger_z) hold_cnt <= hold;
       else                   hold_cnt <= hold_cnt;
@@ -121,9 +132,9 @@ module NIM_output
    
    always_comb
    begin
-      if(|CE)          dout <= 0;
-      if(stretch == 0) dout <= dout_loc;
-      else             dout <= output_sr[0];
+      if(|CE)            dout <= 0;
+      if(stretch_z == 0) dout <= dout_loc;
+      else               dout <= output_sr[0];
    end
 
 endmodule
