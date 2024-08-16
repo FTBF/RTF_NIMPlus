@@ -168,14 +168,14 @@ module RTF_NIMPlus
       logic             dac_wr_dac;
       logic             dac_wr_blk;            
       // Register 2
-      logic [7:0]       clkfbout_mult;
-      logic [7:0]       divclk_divide;
-      logic [7:0]       clkout0_divide;
-      logic [7:0]       clkout1_divide;
-      logic [7:0]       clkout2_divide;
-      logic [7:0]       clkout3_divide;
-      logic [7:0]       clkout4_divide;
       logic [7:0]       clkout5_divide;
+      logic [7:0]       clkout4_divide;
+      logic [7:0]       clkout3_divide;
+      logic [7:0]       clkout2_divide;
+      logic [7:0]       clkout1_divide;
+      logic [7:0]       clkout0_divide;
+      logic [7:0]       divclk_divide;
+      logic [7:0]       clkfbout_mult;
       // Register 1
       logic [47:0]      padding1;
       logic [15:0]      dac_data;
