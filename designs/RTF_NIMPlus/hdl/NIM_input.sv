@@ -2,17 +2,20 @@
 
 module NIM_input
 (
- input logic        clk,
- input logic        reset,
+ input logic         clk,
+ input logic         reset,
 
- input logic [7:0]  delay,
- input logic [63:0] stretch,
- input logic        invert,
- input logic [7:0]  mask,
- input logic [7:0]  trig_pattern,
+ input logic [7:0]   delay,
+ input logic [63:0]  stretch,
+ input logic         invert,
+ input logic [7:0]   mask,
+ input logic [7:0]   trig_pattern,
+ input logic         reset_cnt,
 
- input logic        trig_in,
- output logic       trig_out
+ output logic [31:0] count,
+ 
+ input logic         trig_in,
+ output logic        trig_out
  );
 
    logic [63:0]     input_sr;
@@ -43,13 +46,20 @@ module NIM_input
    end
                      
    assign trig_in_polsel = trig_in ^ invert_z;
-   
+
+   wire trigger = &( ( ~(trig_in_sr ^ trig_pattern_z )) | ~mask_z ) ;
    always @(posedge clk)
    begin
       trig_in_sr <= {trig_in_sr[6:0], trig_in_polsel};
       if(reset) input_sr <= '0;
-      else if( &( ( ~(trig_in_sr ^ trig_pattern_z )) | ~mask_z ) ) input_sr <= stretch_z;
+      else if(trigger) input_sr <= stretch_z;
       else input_sr <= {1'b0, input_sr[63:1]};
+   end
+
+   always @(posedge clk)
+   begin
+      if(reset_cnt)    count <= 0;
+      else if(trigger) count <= count + 1; 
    end
 
    always_comb

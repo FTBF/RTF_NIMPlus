@@ -69,6 +69,9 @@ module NIMPlus
           .invert(params_in.inputs[i].invert),
           .trig_pattern(params_in.inputs[i].trig_pattern),
           .mask(params_in.inputs[i].mask),
+          .reset_cnt(params_in.reset_cnt),
+
+          .count(params_out.inputs[i].count),
 
           .trig_in(NIM_COM[INPUT_CHAN_MAP[i]]),
           .trig_out(inputs[i])
@@ -87,6 +90,9 @@ module NIMPlus
           .invert(params_in.inputs[i+8].invert),
           .trig_pattern(params_in.inputs[i+8].trig_pattern),
           .mask(params_in.inputs[i+8].mask),
+          .reset_cnt(params_in.reset_cnt),
+
+          .count(params_out.inputs[i+8].count),
 
           .trig_in(LVDS_IN[i]),
           .trig_out(inputs[i+8])
@@ -109,6 +115,9 @@ module NIMPlus
           .stretch(params_in.outputs[i].stretch),
           .hold(params_in.outputs[i].hold),
           .trig_pol(params_in.outputs[i].trig_pol),
+          .reset_cnt(params_in.reset_cnt),
+
+          .count(params_out.outputs[i].count),
 
           .inputs({inputs[11:8], 1'b0, inputs[6:0]}),
           .dout(NIM_OUT[i])

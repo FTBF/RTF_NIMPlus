@@ -2,18 +2,21 @@
 
 module NIM_output
 (
- input logic        clk,
- input logic        reset,
+ input logic         clk,
+ input logic         reset,
 
- input logic [31:0] LUT_table,
- input logic [9:0]  LUT_table_we,
+ input logic [31:0]  LUT_table,
+ input logic [9:0]   LUT_table_we,
 
- input logic [31:0] stretch,
- input logic [15:0] hold,
- input logic        trig_pol,
+ input logic [31:0]  stretch,
+ input logic [15:0]  hold,
+ input logic         trig_pol,
+ input logic         reset_cnt,
+
+ output logic [31:0] count,
  
- input logic [11:0] inputs,
- output logic       dout
+ input logic [11:0]  inputs,
+ output logic        dout
  );
 
    logic            CDI;
@@ -135,6 +138,12 @@ module NIM_output
       if(|CE)            dout <= 0;
       if(stretch_z == 0) dout <= dout_loc;
       else               dout <= output_sr[0];
+   end
+
+   always @(posedge clk)
+   begin
+      if(reset_cnt)        count <= 0;
+      else if(out_trigger) count <= count + 1; 
    end
 
 endmodule

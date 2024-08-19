@@ -108,12 +108,29 @@ module RTF_NIMPlus
    logic             user_pll_en_z;
    logic [15:0]      dout;
    logic             drdy;
+   
+   // clock generation
+   logic             pll_external_feedback;
+   logic             pll_external_locked;
+   logic             pll_clk_gen_feedback;
+   logic             pll_clk_gen_locked;
+   logic             pll_user_feedback;
+   logic             pll_user_locked;
+   logic             pll_user_clk1_feedback;
+   logic             pll_user_clk1_locked;
+   logic             external_clk_53;
+   logic             external_clk_160;
+   logic             internal_clk_160;
+   logic             input_clk_160;
+   logic [1:0]       pulse_out;
+   logic [31:0]      clock_counters[5:0];
 
 
    // module parameter handling
    typedef struct    packed {
       // Register 3
-      logic [63:0]      padding3;
+      logic [31:0]      padding3;
+      logic [31:0]      count;
       // Register 2
       logic [55:0]      padding2;
       logic [7:0]       delay;
@@ -127,6 +144,11 @@ module RTF_NIMPlus
     } input_param_t;
 
    typedef struct       packed {
+      // Register 3
+      logic [63:0]      padding3;
+      // Register 2
+      logic [31:0]      padding2;
+      logic [31:0]      count;
       // Register 1
       logic [14:0]      padding1;
       logic             trig_pol;
@@ -152,22 +174,25 @@ module RTF_NIMPlus
       logic [15:0]      period;
    } pulse_param_t;
 
+   typedef struct       packed {
+      // Register 0
+      logic [31:0]      padding0;
+      logic [31:0]      count;
+   } clkmon_param_t;
+
    typedef struct    packed {
-      logic [36*64-1:0] padding;
-      //pulse gen settings 90-91
+      logic [22*64-1:0] padding;
+      //clock monitor counts 100-105
+      clkmon_param_t [5:0] clock_counters;
+      //pulse gen settings 98-99
       pulse_param_t [1:0] pulses;
-      //output mux settings 60-89
+      //output mux settings 68-97
       mux_param_t [29:0] mux;
-      //output regs 52-59
+      //output regs 52-67
       output_param_t [3:0] outputs;
       //input registers 4-51
       input_param_t [11:0] inputs;
       // Register 3
-      logic [60:0]      padding2;
-      logic             user_pll_we;
-      logic             dac_wr_dac;
-      logic             dac_wr_blk;            
-      // Register 2
       logic [7:0]       clkout5_divide;
       logic [7:0]       clkout4_divide;
       logic [7:0]       clkout3_divide;
@@ -176,11 +201,21 @@ module RTF_NIMPlus
       logic [7:0]       clkout0_divide;
       logic [7:0]       divclk_divide;
       logic [7:0]       clkfbout_mult;
-      // Register 1
+      // Register 2
       logic [47:0]      padding1;
       logic [15:0]      dac_data;
+      // Register 1
+      logic [56:0]      padding2;
+      logic             pll_external_locked;
+      logic             pll_internal_locked;
+      logic             pll_system_locked;
+      logic             pll_user_locked;
+      logic             user_pll_we;
+      logic             dac_wr_dac;
+      logic             dac_wr_blk;            
       // Register 0
-      logic [60:0]      padding0;
+      logic [59:0]      padding0;
+      logic             reset_cnt;
       logic             pll_user_reset;
       logic             ext_clk_select;
       logic             reset;
@@ -190,6 +225,7 @@ module RTF_NIMPlus
    param_t params_from_bus;
    param_t params_to_IP;
    param_t params_to_bus;
+   param_t params_NIMPlus_out;
    
    localparam param_t defaults = param_t'{default:'0,
                                           inputs:{12{'{default:'0, mask:8'h3, trig_pattern:8'h1}}},
@@ -206,8 +242,11 @@ module RTF_NIMPlus
 
    localparam output_param_t output_self_reset = '{default:'0, lut_we:'1};
    localparam param_t self_reset = '{default:'0,
+                                     reset_cnt:'1,
                                      pll_user_reset:'0,
                                      user_pll_we:'1,
+                                     dac_wr_dac:'1,
+                                     dac_wr_blk:'1,         
                                      outputs:{4{output_self_reset}},
 	                                 reset:'b1
                                      };
@@ -263,21 +302,34 @@ module RTF_NIMPlus
       params_from_IP.padding0 = '0;
       params_from_IP.padding1 = '0;
       params_from_IP.padding2 = '0;
+      params_from_IP.pll_external_locked = pll_external_locked;
+      params_from_IP.pll_internal_locked = pll_user_clk1_locked;
+      params_from_IP.pll_system_locked   = pll_clk_gen_locked;
+      params_from_IP.pll_user_locked     = pll_user_locked;
       for(iparam = 0; iparam < 12; iparam += 1)
       begin
          params_from_IP.inputs[iparam].padding0 = '0;
          params_from_IP.inputs[iparam].padding2 = '0;
          params_from_IP.inputs[iparam].padding3 = '0;
+         params_from_IP.inputs[iparam].count <= params_NIMPlus_out.inputs[iparam].count;
       end
       for(iparam = 0; iparam < 4; iparam += 1)
       begin
          params_from_IP.outputs[iparam].padding0 = '0;
          params_from_IP.outputs[iparam].padding1 = '0;
+         params_from_IP.outputs[iparam].padding2 = '0;
+         params_from_IP.outputs[iparam].padding3 = '0;
+         params_from_IP.outputs[iparam].count <= params_NIMPlus_out.outputs[iparam].count;
       end
       for(iparam = 0; iparam < 30; iparam += 1)
       begin
          params_from_IP.mux[iparam].padding0 = '0;
-      end      
+      end
+      for(iparam = 0; iparam < 6; iparam += 1)
+      begin
+         params_from_IP.clock_counters[iparam].padding0 = '0;
+         params_from_IP.clock_counters[iparam].count = clock_counters[iparam];
+      end
    end
    
    // ethernet interface
@@ -314,20 +366,6 @@ module RTF_NIMPlus
     );
 
    //NIM+ logic 
-   // clock generation
-   logic pll_external_feedback;
-   logic pll_external_locked;
-   logic pll_clk_gen_feedback;
-   logic pll_clk_gen_locked;
-   logic pll_user_feedback;
-   logic pll_user_locked;
-   logic pll_user_clk1_feedback;
-   logic pll_user_clk1_locked;
-   logic external_clk_53;
-   logic external_clk_160;
-   logic internal_clk_160;
-   logic input_clk_160;
-   logic [1:0] pulse_out;
 
    BUFG external_clk_buf(.O(external_clk_53), .I(NIM_COM[0]));
 
@@ -463,7 +501,8 @@ module RTF_NIMPlus
     .RST_PLL(userpll_rst),
     .LOCKED_OUT()
     );
-   
+
+   logic [3:0]  output_user_clks_loc;
    PLLE2_ADV 
    #(
      .BANDWIDTH("OPTIMIZED"),  // OPTIMIZED, HIGH, LOW
@@ -496,10 +535,10 @@ module RTF_NIMPlus
      ) pll_user_clks 
    (
     // Clock Outputs: 1-bit (each) output: User configurable clock outputs
-    .CLKOUT0(output_user_clks[0]),   // 1-bit output: CLKOUT0
-    .CLKOUT1(output_user_clks[1]),   // 1-bit output: CLKOUT1
-    .CLKOUT2(output_user_clks[2]),   // 1-bit output: CLKOUT2
-    .CLKOUT3(output_user_clks[3]),   // 1-bit output: CLKOUT3
+    .CLKOUT0(output_user_clks_loc[0]),   // 1-bit output: CLKOUT0
+    .CLKOUT1(output_user_clks_loc[1]),   // 1-bit output: CLKOUT1
+    .CLKOUT2(output_user_clks_loc[2]),   // 1-bit output: CLKOUT2
+    .CLKOUT3(output_user_clks_loc[3]),   // 1-bit output: CLKOUT3
     // Feedback Clocks: 1-bit (each) output: Clock feedback ports
     .CLKFBOUT(pll_user_feedback), // 1-bit output: Feedback clock
     .LOCKED(pll_user_locked),     // 1-bit output: LOCK
@@ -524,7 +563,129 @@ module RTF_NIMPlus
     .CLKFBIN(pll_user_feedback)    // 1-bit input: Feedback clock
     );
 
-   
+   generate
+      for(i = 0; i < 4; i += 1)
+      begin
+         BUFG user_clk_buf(.I(output_user_clks_loc[i]), .O(output_user_clks[i]));
+         
+         logic [31:0] count_out;
+         
+         clkRateTool 
+         #(
+	       .USE_DSP_REFCNT(0),
+	       .USE_DSP_TESTCNT(1),
+	       .USE_DSP_OUTPUT(1),
+	       .CLK_REF_RATE_HZ(100000000),
+	       .COUNTER_WIDTH(32),
+	       .MEASURE_PERIOD_s(1),
+	       .MEASURE_TIME_s(0.001)
+	       ) clock_monitor
+              (
+		       .reset_in(reset), // unused
+		       .clk_ref(USER_CLK1),
+		       .clk_test(output_user_clks[i]),
+		       .value(count_out) // value is synchronous to clk_ref
+	           );
+
+         logic send, recv;
+		 assign send = ~recv;
+         xpm_cdc_handshake 
+         #(
+           .DEST_EXT_HSK(0),   // DECIMAL; 0=internal handshake, 1=external handshake
+           .DEST_SYNC_FF(2),   // DECIMAL; range: 2-10
+           .INIT_SYNC_FF(1),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+           .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+           .SRC_SYNC_FF(2),    // DECIMAL; range: 2-10
+           .WIDTH(32)           // DECIMAL; range: 1-1024
+           ) xpm_cdc_handshake_inst 
+         (
+          .src_clk(USER_CLK1),   // 1-bit input: Source clock.
+          .src_rcv(recv),   // 1-bit output: Acknowledgement from destination logic that src_in has been
+          .src_in(count_out),     // WIDTH-bit input: Input bus that will be synchronized to the destination clock
+          .src_send(send),  // 1-bit input: Assertion of this signal allows the src_in bus to be synchronized to
+          .dest_clk(clk_160), // 1-bit input: Destination clock.
+          .dest_out(clock_counters[i]) // WIDTH-bit output: Input bus (src_in) synchronized to destination clock domain.
+          );
+      end
+   endgenerate
+
+   logic [31:0] count_out_external;
+   clkRateTool 
+   #(
+	 .USE_DSP_REFCNT(0),
+	 .USE_DSP_TESTCNT(1),
+	 .USE_DSP_OUTPUT(1),
+	 .CLK_REF_RATE_HZ(100000000),
+	 .COUNTER_WIDTH(32),
+	 .MEASURE_PERIOD_s(1),
+	 .MEASURE_TIME_s(0.001)
+	 ) clock_monitor_external
+   (
+	.reset_in(reset), // unused
+	.clk_ref(USER_CLK1),
+	.clk_test(external_clk_53),
+	.value(count_out_external) // value is synchronous to clk_ref
+	);
+
+   logic        send, recv;
+   assign send = ~recv;
+   xpm_cdc_handshake 
+   #(
+     .DEST_EXT_HSK(0),   // DECIMAL; 0=internal handshake, 1=external handshake
+     .DEST_SYNC_FF(2),   // DECIMAL; range: 2-10
+     .INIT_SYNC_FF(1),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+     .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+     .SRC_SYNC_FF(2),    // DECIMAL; range: 2-10
+     .WIDTH(32)           // DECIMAL; range: 1-1024
+     ) xpm_cdc_handshake_ext_clk 
+   (
+    .src_clk(USER_CLK1),   // 1-bit input: Source clock.
+    .src_rcv(recv),   // 1-bit output: Acknowledgement from destination logic that src_in has been
+    .src_in(count_out_external),     // WIDTH-bit input: Input bus that will be synchronized to the destination clock
+    .src_send(send),  // 1-bit input: Assertion of this signal allows the src_in bus to be synchronized to
+    .dest_clk(clk_160), // 1-bit input: Destination clock.
+    .dest_out(clock_counters[4]) // WIDTH-bit output: Input bus (src_in) synchronized to destination clock domain.
+    );
+
+   logic [31:0] count_out_160;
+   clkRateTool 
+   #(
+     .USE_DSP_REFCNT(0),
+     .USE_DSP_TESTCNT(1),
+     .USE_DSP_OUTPUT(1),
+     .CLK_REF_RATE_HZ(100000000),
+     .COUNTER_WIDTH(32),
+     .MEASURE_PERIOD_s(1),
+     .MEASURE_TIME_s(0.001)
+     ) clock_monitor_160
+   (
+    .reset_in(reset), // unused
+    .clk_ref(USER_CLK1),
+    .clk_test(clk_160),
+    .value(count_out_160) // value is synchronous to clk_ref
+    );
+
+   logic        send2, recv2;
+   assign send2 = ~recv2;
+   xpm_cdc_handshake 
+   #(
+     .DEST_EXT_HSK(0),   // DECIMAL; 0=internal handshake, 1=external handshake
+     .DEST_SYNC_FF(2),   // DECIMAL; range: 2-10
+     .INIT_SYNC_FF(1),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+     .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+     .SRC_SYNC_FF(2),    // DECIMAL; range: 2-10
+     .WIDTH(32)           // DECIMAL; range: 1-1024
+     ) xpm_cdc_handshake_160_clk 
+   (
+    .src_clk(USER_CLK1),   // 1-bit input: Source clock.
+    .src_rcv(recv2),   // 1-bit output: Acknowledgement from destination logic that src_in has been
+    .src_in(count_out_160),     // WIDTH-bit input: Input bus that will be synchronized to the destination clock
+    .src_send(send2),  // 1-bit input: Assertion of this signal allows the src_in bus to be synchronized to
+    .dest_clk(clk_160), // 1-bit input: Destination clock.
+    .dest_out(clock_counters[5]) // WIDTH-bit output: Input bus (src_in) synchronized to destination clock domain.
+    );
+
+         
    //NIM+ logic
    NIMPlus
    #(
@@ -554,7 +715,7 @@ module RTF_NIMPlus
     .DAC_DIN(DAC_DIN), // DAC Programming interface data
 
     //parameters
-    .params_out(),
+    .params_out(params_NIMPlus_out),
 	.params_in(params_to_IP)
     );
 
