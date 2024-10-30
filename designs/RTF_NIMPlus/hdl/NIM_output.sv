@@ -142,8 +142,8 @@ module NIM_output
 
    always @(posedge clk)
    begin
-      if(reset_cnt)        count <= 0;
-      else if(out_trigger) count <= count + 1; 
+      if(reset_cnt) count <= 0;
+      else if(out_trigger)   count <= count + 1; 
    end
 
 endmodule

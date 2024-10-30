@@ -7,29 +7,36 @@ module NIMPlus
   parameter type PARAM_T = logic[N_REG*C_S_AXI_DATA_WIDTH-1:0]
   )
    (
-    input logic        clk_fast,
-    input logic        clk_slow,
-    input logic        clk_dac,
+    input logic         clk_fast,
+    input logic         clk_slow,
+    input logic         clk_dac,
 
-    input logic        reset,
+    input logic         reset,
 
     // //NIM+ i/o 
-    input logic [7:0]  NIM_COM, // 8 NIM inputs
-    output logic [7:0] NIM_COM_UNLATCH, // 8 NIM input latch contorl 
+    input logic [7:0]   NIM_COM, // 8 NIM inputs
+    output logic [7:0]  NIM_COM_UNLATCH, // 8 NIM input latch contorl 
    
-    input logic [3:0]  LVDS_IN, // 4 LVDS in
+    input logic [3:0]   LVDS_IN, // 4 LVDS in
 
-    output logic [3:0] NIM_OUT, // 4 NIM outputs
+    output logic [3:0]  NIM_OUT, // 4 NIM outputs
 
-    output logic [1:0] pulse_out,
+    output logic [1:0]  pulse_out,
 
-    output logic       DAC_SER_CLK, // DAC Programming interface clock
-    output logic       DAC_NSYNC, // DAC Programming interface sync
-    output logic       DAC_DIN, // DAC Programming interface data
+    output logic        DAC_SER_CLK, // DAC Programming interface clock
+    output logic        DAC_NSYNC, // DAC Programming interface sync
+    output logic        DAC_DIN, // DAC Programming interface data
+
+    //burst write ETH signals
+    input logic         eth_clk,
+
+    output logic [63:0] b_data,
+    output logic        b_data_we,
+    input logic         b_enable,
 
     //parameters
-    output             PARAM_T params_out,
-	input              PARAM_T params_in
+    output              PARAM_T params_out,
+	input               PARAM_T params_in
     );
 
    logic [11:0]        inputs;
@@ -141,6 +148,28 @@ module NIMPlus
           );
       end
    endgenerate
+
+   //TAC
+   NIM_TAC tac_module
+   (
+    .clk(clk_fast),
+    .reset(reset),
+
+    .enable(params_in.tac.enable),
+    .start_sel(params_in.tac.start_sel),
+    .stop_sel(params_in.tac.stop_sel),
+    .max_time(params_in.tac.max_time),
+    .allow_repeat_start(params_in.tac.allow_repeat_start), 
+
+    .inputs(NIM_OUT),
+
+    .eth_clk(eth_clk),
+
+    .b_data(b_data),
+    .b_data_we(b_data_we),
+    .b_enable(b_enable)
+    );
+
 
    
 endmodule

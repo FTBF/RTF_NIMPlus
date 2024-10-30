@@ -9,6 +9,7 @@ hdl:
    - designs/RTF_NIMPlus/hdl/NIM_output.sv
    - designs/RTF_NIMPlus/hdl/CFGLUT_ctrl.sv
    - designs/RTF_NIMPlus/hdl/NIM_pulse_gen.sv
+   - designs/RTF_NIMPlus/hdl/NIM_TAC.sv
    - designs/RTF_NIMPlus/hdl/ethernet/reset_mgr.vhd
    - designs/RTF_NIMPlus/hdl/ethernet/data_manager/tx_seq_ctl.vhd
    - designs/RTF_NIMPlus/hdl/ethernet/data_manager/ram_comm_dec.vhd

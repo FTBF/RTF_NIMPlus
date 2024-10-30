@@ -307,7 +307,7 @@ module RTF_NIMPlus_sim
 	     
 	     //length
          ethSend('h00, tmpEthData, CRC);
-         ethSend('h1a, tmpEthData, CRC);
+         ethSend('h12, tmpEthData, CRC);
 	     
 	     //UDP checksum 
          ethSend('h8b, tmpEthData, CRC);
@@ -413,6 +413,9 @@ module RTF_NIMPlus_sim
    assign LVDS_IN_N = ~LVDS_IN_P;
    assign SMA_in_N = ~SMA_in_P;
    
+   assign RJ45_in_1_N = ~RJ45_in_1_P;
+   assign RJ45_in_2_N = ~RJ45_in_2_P;
+   
    RTF_NIMPlus DUT
    (
     //CAPTAN clocks
@@ -505,6 +508,8 @@ module RTF_NIMPlus_sim
       NIM_COM_P <= 0;
       LVDS_IN_P <= 0;
       SMA_in_P <= 0;
+      RJ45_in_1_P <= 0;
+      RJ45_in_2_P <= 0;
 
       // Ethernet interface 
       PHY_RXER <= 0;
@@ -552,6 +557,16 @@ module RTF_NIMPlus_sim
 
 
       #2000;
+      
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+      #5000 ethRecvCom('h0, 'd1, 'h1);
+
 
       NIM_COM_P <= 8'h3;
       #100;

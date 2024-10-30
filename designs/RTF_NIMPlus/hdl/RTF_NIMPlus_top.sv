@@ -1,18 +1,19 @@
 `timescale 1ns / 1ps
+`default_nettype none
 
 module RTF_NIMPlus
 (
  //CAPTAN clocks
- input logic         USER_CLK1, // Input pin of this clock is on a Global Clock Route:  CAPTAN+ local oscillator FPGA PIN AA30
- input logic         USER_CLK2, // CAPTAN+ local oscillator FPGA PIN AC33
+ input wire         USER_CLK1, // Input pin of this clock is on a Global Clock Route:  CAPTAN+ local oscillator FPGA PIN AA30
+ input wire         USER_CLK2, // CAPTAN+ local oscillator FPGA PIN AC33
 
  // //NIM+ i/o 
- input logic [7:0]   NIM_COM_P, // 8 NIM inputs
- input logic [7:0]   NIM_COM_N,
+ input wire [7:0]   NIM_COM_P, // 8 NIM inputs
+ input wire [7:0]   NIM_COM_N,
  output logic [7:0]  NIM_COM_UNLATCH, // 8 NIM input latch contorl 
     
- input logic [3:0]   LVDS_IN_P, // 4 LVDS in
- input logic [3:0]   LVDS_IN_N,
+ input wire [3:0]   LVDS_IN_P, // 4 LVDS in
+ input wire [3:0]   LVDS_IN_N,
 
  output logic [3:0]  NIM_OUT_P, // 4 NIM outputs
  output logic [3:0]  NIM_OUT_N,
@@ -23,10 +24,10 @@ module RTF_NIMPlus
 
 
  // I2C Interface to the clock generator 
- inout logic         USER_CLK1_SCL,
- inout logic         USER_CLK1_SDA,
- inout logic         USER_CLK2_SCL,
- inout logic         USER_CLK2_SDA,
+ inout wire         USER_CLK1_SCL,
+ inout wire         USER_CLK1_SDA,
+ inout wire         USER_CLK2_SCL,
+ inout wire         USER_CLK2_SDA,
                      
  output logic        LED0,
     
@@ -37,23 +38,23 @@ module RTF_NIMPlus
  output logic [11:0] RJ45_out_2_N,
 
  //RTF backpanel connections
- input logic [7:0]   RJ45_in_1_P,
- input logic [7:0]   RJ45_in_1_N,
- input logic [7:0]   RJ45_in_2_P,
- input logic [7:0]   RJ45_in_2_N,
+ input wire [7:0]   RJ45_in_1_P,
+ input wire [7:0]   RJ45_in_1_N,
+ input wire [7:0]   RJ45_in_2_P,
+ input wire [7:0]   RJ45_in_2_N,
 
- input logic [1:0]   SMA_in_P,
- input logic [1:0]   SMA_in_N,
+ input wire [1:0]   SMA_in_P,
+ input wire [1:0]   SMA_in_N,
  output logic [1:0]  SMA_out_P,
  output logic [1:0]  SMA_out_N,
                    
     
  // Ethernet interface 
- input logic         PHY_RXCLK,
- input logic         PHY_RXCTL_RXDV,
- input logic [7:0]   PHY_RXD, 
+ input wire         PHY_RXCLK,
+ input wire         PHY_RXCTL_RXDV,
+ input wire [7:0]   PHY_RXD, 
     
- input logic         PHY_RXER,
+ input wire         PHY_RXER,
     
  output logic        PHY_RESET,
 
@@ -73,6 +74,11 @@ module RTF_NIMPlus
    logic             eth_reset;
    logic             IPIF_ip2bus_wrack;
    logic             IPIF_ip2bus_rdack;
+
+   logic [63:0]      b_data;
+   logic             b_data_we;
+   logic             b_enable;
+
 
    //general nets
    logic             reset;
@@ -169,6 +175,16 @@ module RTF_NIMPlus
 
    typedef struct       packed {
       // Register 0
+      logic [31:0]      max_time;     
+      logic [25:0]      padding0;
+      logic [1:0]       stop_sel;
+      logic [1:0]       start_sel;
+      logic             allow_repeat_start;
+      logic             enable;
+   } tac_param_t;
+
+   typedef struct       packed {
+      // Register 0
       logic [41:0]      padding0;
       logic [5:0]       length;
       logic [15:0]      period;
@@ -181,7 +197,9 @@ module RTF_NIMPlus
    } clkmon_param_t;
 
    typedef struct    packed {
-      logic [22*64-1:0] padding;
+      logic [21*64-1:0] padding;
+      //TAC register 106
+      tac_param_t tac;
       //clock monitor counts 100-105
       clkmon_param_t [5:0] clock_counters;
       //pulse gen settings 98-99
@@ -228,6 +246,7 @@ module RTF_NIMPlus
    param_t params_NIMPlus_out;
    
    localparam param_t defaults = param_t'{default:'0,
+                                          tac:'{default:'0, max_time:32'd320},
                                           inputs:{12{'{default:'0, mask:8'h3, trig_pattern:8'h1}}},
                                           ext_clk_select:0,
                                           clkfbout_mult:8'd5,
@@ -269,7 +288,7 @@ module RTF_NIMPlus
 		.IPIF_bus2ip_addr(rx_addr<<2), // <<2 because this is expecting AXI 8-bit byte addresses 
 		.IPIF_bus2ip_data(rx_data),
 		.IPIF_bus2ip_rdce( { {N_REG{1'b0}}, tx_rden } ),
-		.IPIF_bus2ip_resetn(PHY_RESET),
+		.IPIF_bus2ip_resetn(!eth_reset),
 		.IPIF_bus2ip_wrce(0),
         .IPIF_bus2ip_wstrb(rx_wren),
 		.IPIF_ip2bus_data(tx_data),
@@ -288,7 +307,7 @@ module RTF_NIMPlus
 	) parameter_cdc (
 		.IP_clk(clk_160),
 		.bus_clk(PHY_RXCLK),
-		.bus_clk_aresetn(!reset),
+		.bus_clk_aresetn(!eth_reset),
 		.params_from_IP(params_from_IP),
 		.params_from_bus(params_from_bus),
 		.params_to_IP(params_to_IP),
@@ -306,12 +325,13 @@ module RTF_NIMPlus
       params_from_IP.pll_internal_locked = pll_user_clk1_locked;
       params_from_IP.pll_system_locked   = pll_clk_gen_locked;
       params_from_IP.pll_user_locked     = pll_user_locked;
+      params_from_IP.tac.padding0 = '0;
       for(iparam = 0; iparam < 12; iparam += 1)
       begin
          params_from_IP.inputs[iparam].padding0 = '0;
          params_from_IP.inputs[iparam].padding2 = '0;
          params_from_IP.inputs[iparam].padding3 = '0;
-         params_from_IP.inputs[iparam].count <= params_NIMPlus_out.inputs[iparam].count;
+         params_from_IP.inputs[iparam].count = params_NIMPlus_out.inputs[iparam].count;
       end
       for(iparam = 0; iparam < 4; iparam += 1)
       begin
@@ -319,7 +339,7 @@ module RTF_NIMPlus
          params_from_IP.outputs[iparam].padding1 = '0;
          params_from_IP.outputs[iparam].padding2 = '0;
          params_from_IP.outputs[iparam].padding3 = '0;
-         params_from_IP.outputs[iparam].count <= params_NIMPlus_out.outputs[iparam].count;
+         params_from_IP.outputs[iparam].count = params_NIMPlus_out.outputs[iparam].count;
       end
       for(iparam = 0; iparam < 30; iparam += 1)
       begin
@@ -333,22 +353,76 @@ module RTF_NIMPlus
    end
    
    // ethernet interface
+   logic [7:0] PHY_RXD_z;
+   logic PHY_RXCTL_RXDV_z;
+   logic PHY_RXER_z;
+
+   logic [7:0] PHY_TXD_z;
+   logic PHY_TXCTL_TXEN_z;
+   logic PHY_TXER_z;
+
+   wire [9:0] rx_vals_in = {PHY_RXER, PHY_RXCTL_RXDV, PHY_RXD};
+   wire [9:0] rx_vals_out;
+   assign {PHY_RXER_z, PHY_RXCTL_RXDV_z, PHY_RXD_z} = rx_vals_out;
+   wire [9:0] tx_vals_out;
+   assign {PHY_TXER, PHY_TXCTL_TXEN, PHY_TXD} = tx_vals_out;
+   wire [9:0] tx_vals_in = {PHY_TXER_z, PHY_TXCTL_TXEN_z, PHY_TXD_z};
+
+   generate
+      for(i = 0; i < 10; i = i + 1)
+      begin
+         IDDR 
+              #(
+                .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), // "OPPOSITE_EDGE", "SAME_EDGE" 
+                //    or "SAME_EDGE_PIPELINED" 
+                .INIT_Q1(1'b0), // Initial value of Q1: 1'b0 or 1'b1
+                .INIT_Q2(1'b0), // Initial value of Q2: 1'b0 or 1'b1
+                .SRTYPE("SYNC") // Set/Reset type: "SYNC" or "ASYNC" 
+                ) IDDR_inst 
+              (
+               .Q1(rx_vals_out[i]), // 1-bit output for positive edge of clock
+               .Q2(), // 1-bit output for negative edge of clock
+               .C(PHY_RXCLK),   // 1-bit clock input
+               .CE(1'b1), // 1-bit clock enable input
+               .D(rx_vals_in[i]),   // 1-bit DDR data input
+               .R(1'b0),   // 1-bit reset
+               .S(1'b0)    // 1-bit set
+               );
+
+         ODDR 
+         #(
+           .DDR_CLK_EDGE("OPPOSITE_EDGE"), // "OPPOSITE_EDGE" or "SAME_EDGE" 
+           .INIT(1'b0),    // Initial value of Q: 1'b0 or 1'b1
+           .SRTYPE("SYNC") // Set/Reset type: "SYNC" or "ASYNC" 
+           ) ODDR_inst 
+         (
+          .Q(tx_vals_out[i]),   // 1-bit DDR output
+          .C(PHY_TXC_GTXCLK),   // 1-bit clock input
+          .CE(1'b1), // 1-bit clock enable input
+          .D1(tx_vals_in[i]), // 1-bit data input (positive edge)
+          .D2(tx_vals_in[i]), // 1-bit data input (negative edge)
+          .R(1'b0),   // 1-bit reset
+          .S(1'b0)    // 1-bit set
+          );
+      end
+   endgenerate
+   
    Ethernet_Interface eth_interface
    (
     .MASTER_CLK(PHY_RXCLK),
     .USER_CLK(USER_CLK1),
     .reset_in(0),
-    .reset_out(reset),
+    .reset_out(eth_reset),
     .PHY_RESET(PHY_RESET),
       
-    .PHY_RXD(PHY_RXD),
-    .PHY_RX_DV(PHY_RXCTL_RXDV),
-    .PHY_RX_ER(PHY_RXER),
+    .PHY_RXD(PHY_RXD_z),
+    .PHY_RX_DV(PHY_RXCTL_RXDV_z),
+    .PHY_RX_ER(PHY_RXER_z),
       
     .TX_CLK(PHY_TXC_GTXCLK),
-    .PHY_TXD(PHY_TXD),
-    .PHY_TX_EN(PHY_TXCTL_TXEN),
-    .PHY_TX_ER(PHY_TXER),
+    .PHY_TXD(PHY_TXD_z),
+    .PHY_TX_EN(PHY_TXCTL_TXEN_z),
+    .PHY_TX_ER(PHY_TXER_z),
       
     .user_ready(IPIF_ip2bus_rdack || IPIF_ip2bus_wrack),
 
@@ -361,8 +435,22 @@ module RTF_NIMPlus
       
     .b_data(b_data),      
     .b_data_we(b_data_we),
-    .b_enable()
+    .b_enable(b_enable)
       
+    );
+
+   //reset sync
+   xpm_cdc_async_rst 
+   #(
+     .DEST_SYNC_FF(4),    // DECIMAL; range: 2-10
+     .INIT_SYNC_FF(1),    // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+     .RST_ACTIVE_HIGH(1)  // DECIMAL; 0=active low reset, 1=active high reset
+     )
+   xpm_cdc_async_rst_inst 
+   (
+    .dest_arst(reset), // 1-bit output: src_arst asynchronous reset signal synchronized to destination
+    .dest_clk(clk_160),   // 1-bit input: Destination clock.
+    .src_arst(eth_reset)    // 1-bit input: Source asynchronous reset signal.
     );
 
    //NIM+ logic 
@@ -374,7 +462,7 @@ module RTF_NIMPlus
     .O(input_clk_160),   // 1-bit output: Clock output
     .I0(internal_clk_160), // 1-bit input: Clock input (S=0)
     .I1(external_clk_160), // 1-bit input: Clock input (S=1)
-    .S(params_from_bus.ext_clk_select && pll_external_locked) //params_from_bus instead of to_IP is intentional 
+    .S(1'b0/*params_from_bus.ext_clk_select && pll_external_locked*/) //params_from_bus instead of to_IP is intentional 
     );
 
    MMCME2_BASE 
@@ -394,7 +482,7 @@ module RTF_NIMPlus
     .CLKOUT0(external_clk_160),     // 1-bit output: CLKOUT0
     .CLKFBOUT(pll_external_feedback),   // 1-bit output: Feedback clock
     .CLKFBOUTB(), // 1-bit output: Inverted CLKFBOUT
-    .LOCKED(LOCKED),       // 1-bit output: LOCK
+    .LOCKED(pll_external_locked),       // 1-bit output: LOCK
     .CLKIN1(external_clk_53),       // 1-bit input: Clock
     .PWRDWN(1'b0),       // 1-bit input: Power-down
     .RST(1'b0),             // 1-bit input: Reset
@@ -709,6 +797,13 @@ module RTF_NIMPlus
     .NIM_OUT(nim_outputs), // 4 NIM outputs
 
     .pulse_out(pulse_out),
+
+    //burst write ETH signals
+    .eth_clk(PHY_RXCLK),
+
+    .b_data(b_data),
+    .b_data_we(b_data_we),
+    .b_enable(b_enable),
 
     .DAC_SER_CLK(DAC_SER_CLK), // DAC Programming interface clock
     .DAC_NSYNC(DAC_NSYNC), // DAC Programming interface sync

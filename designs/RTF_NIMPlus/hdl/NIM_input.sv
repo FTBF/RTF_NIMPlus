@@ -58,8 +58,8 @@ module NIM_input
 
    always @(posedge clk)
    begin
-      if(reset_cnt)    count <= 0;
-      else if(trigger) count <= count + 1; 
+      if(reset_cnt) count <= 0;
+      else if(trigger)       count <= count + 1; 
    end
 
    always_comb
