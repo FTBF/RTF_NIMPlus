@@ -371,6 +371,8 @@ module RTF_NIMPlus
    generate
       for(i = 0; i < 10; i = i + 1)
       begin
+         logic rx_delayed; //required to make sim behave 
+         assign #1 rx_delayed = rx_vals_in[i];
          IDDR 
               #(
                 .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), // "OPPOSITE_EDGE", "SAME_EDGE" 
@@ -384,7 +386,7 @@ module RTF_NIMPlus
                .Q2(), // 1-bit output for negative edge of clock
                .C(PHY_RXCLK),   // 1-bit clock input
                .CE(1'b1), // 1-bit clock enable input
-               .D(rx_vals_in[i]),   // 1-bit DDR data input
+               .D(rx_delayed),   // 1-bit DDR data input
                .R(1'b0),   // 1-bit reset
                .S(1'b0)    // 1-bit set
                );

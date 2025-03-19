@@ -494,7 +494,9 @@ module RTF_NIMPlus_sim
    localparam [255:0] I8 = 256'hffffffffffffffffffffffffffffffff00000000000000000000000000000000;
 
    logic [255:0] lut8_table;
-   assign lut8_table = I1 & I2;
+   assign lut8_table = I1;
+   logic [255:0] lut8_table_2;
+   assign lut8_table_2 = I4;
    
    logic [31:0] lut4_table;
    assign lut4_table = I1;
@@ -521,18 +523,29 @@ module RTF_NIMPlus_sim
       #1000 ethSendCom('d2,  'h1);      //delay
       #1000 ethSendCom('d2,  'h2);      //delay
       #1000 ethSendCom('d6,  'd0);      //delay
-      #1000 ethSendCom('d5,  'b11111);  //stretch
+      #1000 ethSendCom('d5,  'b11);  //stretch
       #1000 ethSendCom('d4,  'h00f03);  //trig
-      #1000 ethSendCom('d54, {10'b0000000001, lut8_table[0   +: 32]});
-      #1000 ethSendCom('d54, {10'b0000000010, lut8_table[32  +: 32]});
-      #1000 ethSendCom('d54, {10'b0000000100, lut8_table[64  +: 32]});
-      #1000 ethSendCom('d54, {10'b0000001000, lut8_table[96  +: 32]});
-      #1000 ethSendCom('d54, {10'b0000010000, lut8_table[128 +: 32]});
-      #1000 ethSendCom('d54, {10'b0000100000, lut8_table[160 +: 32]});
-      #1000 ethSendCom('d54, {10'b0001000000, lut8_table[192 +: 32]});
-      #1000 ethSendCom('d54, {10'b0010000000, lut8_table[224 +: 32]});
-      #1000 ethSendCom('d54, {10'b1000000000, lut4_table});
-      #1000 ethSendCom('d55, 'h10000000ff);
+      #1000 ethSendCom('d17,  'b11);  //stretch
+      #1000 ethSendCom('d16,  'h00f03);  //trig
+      #1000 ethSendCom('d52, {10'b0000000001, lut8_table[0   +: 32]});
+      #1000 ethSendCom('d52, {10'b0000000010, lut8_table[32  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000000100, lut8_table[64  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000001000, lut8_table[96  +: 32]});
+      #1000 ethSendCom('d52, {10'b0000010000, lut8_table[128 +: 32]});
+      #1000 ethSendCom('d52, {10'b0000100000, lut8_table[160 +: 32]});
+      #1000 ethSendCom('d52, {10'b0001000000, lut8_table[192 +: 32]});
+      #1000 ethSendCom('d52, {10'b0010000000, lut8_table[224 +: 32]});
+      #1000 ethSendCom('d52, {10'b1000000000, lut4_table});
+      //#1000 ethSendCom('d55, 'h10000000ff);
+      #1000 ethSendCom('d64, {10'b0000000001, lut8_table_2[0   +: 32]});
+      #1000 ethSendCom('d64, {10'b0000000010, lut8_table_2[32  +: 32]});
+      #1000 ethSendCom('d64, {10'b0000000100, lut8_table_2[64  +: 32]});
+      #1000 ethSendCom('d64, {10'b0000001000, lut8_table_2[96  +: 32]});
+      #1000 ethSendCom('d64, {10'b0000010000, lut8_table_2[128 +: 32]});
+      #1000 ethSendCom('d64, {10'b0000100000, lut8_table_2[160 +: 32]});
+      #1000 ethSendCom('d64, {10'b0001000000, lut8_table_2[192 +: 32]});
+      #1000 ethSendCom('d64, {10'b0010000000, lut8_table_2[224 +: 32]});
+      #1000 ethSendCom('d64, {10'b1000000000, lut4_table});
       #1000 ethSendCom('d60, 'd1);
       #1000 ethSendCom('d61, 'd9);
       #1000 ethSendCom('d64, 'd4);
@@ -566,19 +579,43 @@ module RTF_NIMPlus_sim
       #5000 ethRecvCom('h0, 'd1, 'h1);
       #5000 ethRecvCom('h0, 'd1, 'h1);
       #5000 ethRecvCom('h0, 'd1, 'h1);
+      
+      #1000 ethSendCom('d106, {32'd320, 25'd0, 2'd3, 2'd0, 2'b01});
+      #1000 ethSendCom('h100000009, 'd1);
 
+      #1000;
 
-      NIM_COM_P <= 8'h3;
+      NIM_COM_P <= 8'h80;
       #100;
       NIM_COM_P <= 8'h0;
       #100;
-      NIM_COM_P <= 8'h3;
+      NIM_COM_P <= 8'h80;
       #100;
       NIM_COM_P <= 8'h0;      
       #100;
-      NIM_COM_P <= 8'h3;
+      NIM_COM_P <= 8'hf;
+      #100;
+      NIM_COM_P <= 8'h0;   
+      #100;
+      NIM_COM_P <= 8'h80;
       #100;
       NIM_COM_P <= 8'h0;      
+      #100;
+      NIM_COM_P <= 8'hf;
+      #100;
+      NIM_COM_P <= 8'h0;  
+      #100;
+      NIM_COM_P <= 8'h80;
+      #100;
+      NIM_COM_P <= 8'h0;      
+      #100;
+      NIM_COM_P <= 8'hf;
+      #100;
+      NIM_COM_P <= 8'h0;  
+         
+         
+      #1000;
+      #1000 ethSendCom('h100000009, 'd0);
    end
 
 endmodule

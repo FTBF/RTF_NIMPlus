@@ -58,7 +58,7 @@ module NIM_input
 
    always @(posedge clk)
    begin
-      if(reset_cnt) count <= 0;
+      if(reset || reset_cnt) count <= 0;
       else if(trigger)       count <= count + 1; 
    end
 

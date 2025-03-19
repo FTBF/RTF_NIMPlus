@@ -37,14 +37,17 @@ module NIM_TAC
       if(reset)
       begin
          counter <= '0;
+         running <= 0;
+         write_counter <= 0;
       end
       else
       begin
          write_counter <= 0;
+         counter <= counter + 1;
          if(enable && start && !start_z && (allow_repeat_start || !running))
          begin
             running <= 1;
-            counter <= 0;
+            counter <= '0;
          end
          else if(running && stop && !stop_z)
          begin
@@ -55,11 +58,6 @@ module NIM_TAC
          begin
             running <= 0;
          end
-         else
-         begin
-            counter <= counter + 1;
-         end
-         
       end
    end
 
